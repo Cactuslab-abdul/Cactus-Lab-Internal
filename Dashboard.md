@@ -3,17 +3,17 @@
 ## Status
 _Last updated: 2026-05-13_
 Agency OS live at https://cactuslabos.netlify.app — Supabase + Netlify deployed, Awab auth working. No client records in DB yet.
-Shared git repo fully synced — all business notes, legal docs, ops tools, branding, and client files now in GitHub.
+Shared git repo fully synced — both Awab and AbouZaid connected. Auto-sync runs every 5 min on Awab's machine.
 
 ## Active Projects
 - **Agency OS** — live, pending: add Pets Delight client record, update invoice bank details, create ops manager account
-- **Ops Manager Onboarding** — git repo synced; next step is git pull on their machine + decide on video sharing solution
+- **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min, wrapup pushes session notes automatically
 
 ## This Week
-- Vault reorganised: merged duplicate Sessions folders, removed empty folders, consolidated client notes, moved CLAUDE/Dashboard/ONBOARDING to root
-- Synced all local Cactus Lab content to shared git repo (41 files: notes, legal, ops, branding, clients)
-- Added .gitignore rules for video files
-- Discussed Obsidian sharing options and simultaneous collaboration approaches
+- Set up SSH key + GitHub access for Awab on the shared repo
+- Configured macOS LaunchAgent for auto-pull every 5 minutes
+- Updated /wrapup skill to commit and push Cactus Lab session notes after every session
+- Cleaned up home directory — all project folders now inside ~/AwabHQ/
 
 ## Decisions Log
 | Date | Decision | Made by |
