@@ -35,16 +35,16 @@
         └── Screenshots/       ← Performance data (use in sales pitches)
 ```
 
-**Full business notes (Obsidian vault):** `~/AwabHQ/AwabHQ/Cactus Lab/`
-- `00 - Hub.md` — master index
-- `01 - Business Overview.md` — positioning, legal, service terms
-- `02 - Sales System.md` — lead gen, outreach scripts, closing playbook
-- `03 - Operations.md` — monthly workflow, QC, onboarding SOPs
-- `04 - Admin & Finance.md` — pricing, invoicing, contracts
-- `05 - Team & Hiring.md` — editor SLA, scaling triggers
-- `06 - Business Pipeline & Dashboard.md` — current metrics + priority actions
-- `07 - Content Studio.md` — 30 organic videos + 2 ad campaigns for Cactus Lab IG
-- `Clients/Pets Delight.md` — client profile, content history, invoices
+**Business notes (Obsidian vault):** `~/Development/Cactus-Lab/`
+- `Core/00 - Hub.md` — master index
+- `Core/01 - Business Overview.md` — positioning, legal, service terms
+- `Core/02 - Sales System.md` — lead gen, outreach scripts, closing playbook
+- `Core/03 - Operations.md` — monthly workflow, QC, onboarding SOPs
+- `Core/04 - Admin & Finance.md` — pricing, invoicing, contracts
+- `Core/05 - Team & Hiring.md` — editor SLA, scaling triggers
+- `Core/06 - Business Pipeline & Dashboard.md` — current metrics + priority actions
+- `Core/07 - Content Studio.md` — 30 organic videos + 2 ad campaigns for Cactus Lab IG
+- `Clients/Pets Delight/Pets Delight.md` — client profile, content history, invoices
 - `Clients/Pets Delight/Content - May 2026.md` — active content tracker
 
 ## Key Business Rules (Always Respect These)
@@ -106,7 +106,7 @@ Our proof-of-concept client. Reference in every sales pitch.
 Both Awab (owner) and a second team member use Claude Code on this codebase/vault.
 - Changes to Obsidian notes: use Read/Edit/Write tools directly on the filesystem
 - Do not use Obsidian MCP for edits — use the filesystem tools directly
-- When saving session notes, save to `~/AwabHQ/AwabHQ/Sessions/` not inside the Cactus Lab folder
+- When saving session notes, save to `~/Development/Cactus-Lab/Sessions/`
 - When in doubt about business decisions, always refer back to the vault notes
 
 ## Available Claude Code Skills
