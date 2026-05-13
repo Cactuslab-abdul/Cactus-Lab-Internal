@@ -2,3 +2,10 @@
 .obsidian/workspace-mobile.json
 .trash/
 .DS_Store
+
+# Large media files — store separately, not in git
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm

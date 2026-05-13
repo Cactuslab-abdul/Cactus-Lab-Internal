@@ -1,0 +1,196 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans)}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:1.5rem}
+.metric{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:12px 14px}
+.metric-label{font-size:12px;color:var(--color-text-secondary);margin-bottom:4px}
+.metric-value{font-size:22px;font-weight:500;color:var(--color-text-primary)}
+.stage-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1rem}
+.tab{font-size:12px;padding:5px 12px;border-radius:20px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-secondary)}
+.tab.active{background:var(--color-text-primary);color:var(--color-background-primary);border-color:var(--color-text-primary)}
+.add-row{display:grid;grid-template-columns:1.8fr 1fr 1fr 2fr auto;gap:8px;margin-bottom:1rem;align-items:center}
+.add-row input,.add-row select{font-size:13px;height:34px;padding:0 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);width:100%}
+.add-row input::placeholder{color:var(--color-text-tertiary)}
+.btn-add{height:34px;padding:0 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-text-primary);color:var(--color-background-primary);cursor:pointer;font-size:13px;white-space:nowrap}
+.lead-table{width:100%;border-collapse:collapse}
+.lead-table th{font-size:11px;color:var(--color-text-secondary);font-weight:500;text-align:left;padding:6px 10px;border-bottom:0.5px solid var(--color-border-tertiary);text-transform:uppercase;letter-spacing:0.04em}
+.lead-table td{font-size:13px;padding:9px 10px;border-bottom:0.5px solid var(--color-border-tertiary);color:var(--color-text-primary);vertical-align:middle}
+.lead-table tr:hover td{background:var(--color-background-secondary)}
+.stage-badge{display:inline-block;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.stage-select{font-size:12px;padding:3px 6px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:transparent;color:var(--color-text-primary);cursor:pointer}
+.btn-del{background:none;border:none;color:var(--color-text-tertiary);cursor:pointer;font-size:16px;padding:2px 6px;border-radius:4px}
+.btn-del:hover{color:var(--color-text-danger,#E24B4A)}
+.empty{text-align:center;color:var(--color-text-tertiary);font-size:13px;padding:2rem 0}
+.niche-tag{font-size:11px;color:var(--color-text-secondary);background:var(--color-background-secondary);padding:2px 7px;border-radius:20px}
+</style>
+
+<h2 class="sr-only">Cactus Lab sales pipeline tracker</h2>
+
+<div style="padding:1rem 0">
+  <div class="metrics" id="metrics"></div>
+
+  <div style="background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:1rem 1.25rem">
+
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem">
+      <p style="font-size:15px;font-weight:500;color:var(--color-text-primary)">Lead pipeline</p>
+      <span style="font-size:12px;color:var(--color-text-tertiary)" id="lead-count"></span>
+    </div>
+
+    <div class="add-row">
+      <input id="in-name" placeholder="Business name" />
+      <select id="in-niche">
+        <option value="">Niche</option>
+        <option>Perfume</option>
+        <option>Car</option>
+        <option>Recruitment</option>
+        <option>Watch</option>
+        <option>Spice</option>
+        <option>Other</option>
+      </select>
+      <select id="in-platform">
+        <option value="">Channel</option>
+        <option>Instagram DM</option>
+        <option>Walk-in</option>
+        <option>WhatsApp</option>
+        <option>Referral</option>
+        <option>Cold call</option>
+      </select>
+      <input id="in-note" placeholder="Note (optional)" />
+      <button class="btn-add" onclick="addLead()"><i class="ti ti-plus" aria-hidden="true"></i> Add</button>
+    </div>
+
+    <div class="stage-tabs" id="tabs"></div>
+
+    <table class="lead-table">
+      <thead>
+        <tr>
+          <th>Business</th>
+          <th>Niche</th>
+          <th>Channel</th>
+          <th>Stage</th>
+          <th>Note</th>
+          <th>Added</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="lead-rows"></tbody>
+    </table>
+    <div id="empty-state" class="empty" style="display:none">No leads in this stage yet.</div>
+  </div>
+</div>
+
+<script>
+const STAGES=[
+  {key:'Found',      color:'#888780', bg:'#F1EFE8'},
+  {key:'Messaged',   color:'#185FA5', bg:'#E6F1FB'},
+  {key:'Replied',    color:'#534AB7', bg:'#EEEDFE'},
+  {key:'Conversation',color:'#BA7517',bg:'#FAEEDA'},
+  {key:'Proposal',   color:'#D85A30', bg:'#FAECE7'},
+  {key:'Closed',     color:'#3B6D11', bg:'#EAF3DE'},
+  {key:'Lost',       color:'#A32D2D', bg:'#FCEBEB'},
+];
+
+const STAGE_KEYS=['All',...STAGES.map(s=>s.key)];
+let activeTab='All';
+
+let leads=[
+  {id:1,name:"Pet's Delight",niche:'Other',platform:'Referral',stage:'Closed',note:'First client — use as social proof',date:'2025-05-01'},
+  {id:2,name:'Al Fares Perfumes',niche:'Perfume',platform:'Walk-in',stage:'Conversation',note:'Owner interested, follow up Tue',date:'2025-05-04'},
+  {id:3,name:'Deira Auto Parts',niche:'Car',platform:'Instagram DM',stage:'Replied',note:'Asked for pricing',date:'2025-05-05'},
+  {id:4,name:'Gulf Recruitment Co',niche:'Recruitment',platform:'Instagram DM',stage:'Messaged',note:'',date:'2025-05-06'},
+  {id:5,name:'Spice House Sharjah',niche:'Spice',platform:'Walk-in',stage:'Found',note:'Good footfall, weak IG',date:'2025-05-06'},
+];
+let nextId=6;
+
+function stageStyle(key){
+  const s=STAGES.find(x=>x.key===key);
+  return s?`background:${s.bg};color:${s.color}`:'';
+}
+
+function today(){return new Date().toISOString().slice(0,10)}
+
+function renderMetrics(){
+  const total=leads.length;
+  const active=leads.filter(l=>!['Closed','Lost'].includes(l.stage)).length;
+  const closed=leads.filter(l=>l.stage==='Closed').length;
+  const lost=leads.filter(l=>l.stage==='Lost').length;
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">Total leads</div><div class="metric-value">${total}</div></div>
+    <div class="metric"><div class="metric-label">In pipeline</div><div class="metric-value">${active}</div></div>
+    <div class="metric"><div class="metric-label">Closed</div><div class="metric-value" style="color:#3B6D11">${closed}</div></div>
+    <div class="metric"><div class="metric-label">Lost</div><div class="metric-value" style="color:#A32D2D">${lost}</div></div>
+  `;
+}
+
+function renderTabs(){
+  const counts={};
+  STAGE_KEYS.forEach(k=>counts[k]=0);
+  leads.forEach(l=>{counts[l.stage]++;counts['All']++;});
+  document.getElementById('tabs').innerHTML=STAGE_KEYS.map(k=>`
+    <button class="tab ${activeTab===k?'active':''}" onclick="setTab('${k}')">${k} <span style="opacity:0.6">${counts[k]}</span></button>
+  `).join('');
+}
+
+function renderRows(){
+  const filtered=activeTab==='All'?leads:leads.filter(l=>l.stage===activeTab);
+  document.getElementById('lead-count').textContent=`${filtered.length} lead${filtered.length!==1?'s':''}`;
+  const tbody=document.getElementById('lead-rows');
+  const empty=document.getElementById('empty-state');
+  if(!filtered.length){tbody.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tbody.innerHTML=filtered.map(l=>`
+    <tr>
+      <td style="font-weight:500">${l.name}</td>
+      <td><span class="niche-tag">${l.niche||'—'}</span></td>
+      <td style="color:var(--color-text-secondary)">${l.platform||'—'}</td>
+      <td>
+        <select class="stage-select" onchange="changeStage(${l.id},this.value)" style="background:${STAGES.find(s=>s.key===l.stage)?.bg||'transparent'};color:${STAGES.find(s=>s.key===l.stage)?.color||'inherit'}">
+          ${STAGES.map(s=>`<option value="${s.key}" ${s.key===l.stage?'selected':''}>${s.key}</option>`).join('')}
+        </select>
+      </td>
+      <td style="color:var(--color-text-secondary);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${l.note}">${l.note||'—'}</td>
+      <td style="color:var(--color-text-tertiary);font-size:12px">${l.date}</td>
+      <td><button class="btn-del" onclick="deleteLead(${l.id})" aria-label="Delete lead"><i class="ti ti-trash" aria-hidden="true"></i></button></td>
+    </tr>
+  `).join('');
+}
+
+function render(){renderMetrics();renderTabs();renderRows();}
+
+function setTab(k){activeTab=k;render();}
+
+function addLead(){
+  const name=document.getElementById('in-name').value.trim();
+  if(!name)return;
+  leads.unshift({
+    id:nextId++,
+    name,
+    niche:document.getElementById('in-niche').value||'Other',
+    platform:document.getElementById('in-platform').value||'Instagram DM',
+    stage:'Found',
+    note:document.getElementById('in-note').value.trim(),
+    date:today()
+  });
+  document.getElementById('in-name').value='';
+  document.getElementById('in-note').value='';
+  document.getElementById('in-niche').value='';
+  document.getElementById('in-platform').value='';
+  activeTab='All';
+  render();
+}
+
+function changeStage(id,stage){
+  const l=leads.find(x=>x.id===id);
+  if(l)l.stage=stage;
+  render();
+}
+
+function deleteLead(id){
+  leads=leads.filter(x=>x.id!==id);
+  render();
+}
+
+render();
+</script>

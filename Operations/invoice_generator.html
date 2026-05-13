@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cactus Lab — Invoice Generator</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green: #1D9E75;
+    --green-light: #E1F5EE;
+    --text: #111;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --bg: #f9fafb;
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+  /* ─── EDITOR UI ─── */
+  #editor { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+  .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+  .editor-header h1 { font-size: 18px; font-weight: 600; }
+  .editor-header span { font-size: 13px; color: var(--muted); }
+
+  .card { background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 1.5rem; margin-bottom: 1rem; }
+  .card h2 { font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border);
+    border-radius: 6px; font-size: 14px; color: var(--text);
+    background: #fff; transition: border-color 0.15s;
+  }
+  input:focus, textarea:focus, select:focus { outline: none; border-color: var(--green); }
+  textarea { resize: vertical; min-height: 60px; }
+
+  /* Line items */
+  #items-table { width: 100%; border-collapse: collapse; margin-bottom: 0.75rem; }
+  #items-table th { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 6px 8px; border-bottom: 1px solid var(--border); text-align: left; }
+  #items-table th:last-child { width: 36px; }
+  .item-row td { padding: 6px 4px; vertical-align: middle; }
+  .item-row td:last-child { text-align: center; }
+  .item-row input { font-size: 13px; }
+  .item-amount { font-size: 13px; color: var(--muted); padding: 0 8px; white-space: nowrap; min-width: 80px; }
+
+  .btn-ghost { background: none; border: 1px solid var(--border); border-radius: 6px; padding: 6px 12px; font-size: 13px; cursor: pointer; color: var(--text); }
+  .btn-ghost:hover { border-color: var(--green); color: var(--green); }
+  .btn-remove { background: none; border: none; cursor: pointer; color: #d1d5db; font-size: 16px; line-height: 1; padding: 4px 6px; border-radius: 4px; }
+  .btn-remove:hover { color: #ef4444; background: #fef2f2; }
+
+  .totals-row { display: flex; justify-content: flex-end; }
+  .totals-box { min-width: 220px; }
+  .totals-line { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; }
+  .totals-line.total { font-size: 16px; font-weight: 700; border-top: 1.5px solid var(--text); margin-top: 4px; padding-top: 8px; }
+
+  .btn-print {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--green); color: #fff; border: none;
+    padding: 12px 24px; border-radius: 8px; font-size: 15px;
+    font-weight: 600; cursor: pointer; margin-top: 1.5rem; width: 100%; justify-content: center;
+  }
+  .btn-print:hover { background: #178a65; }
+
+  /* ─── INVOICE PRINT VIEW ─── */
+  #invoice { display: none; max-width: 760px; margin: 0 auto; padding: 60px 60px; background: #fff; min-height: 100vh; }
+
+  .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 48px; }
+  .inv-brand { }
+  .inv-brand .name { font-size: 22px; font-weight: 700; color: var(--green); letter-spacing: -0.3px; }
+  .inv-brand .tagline { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .inv-brand .address { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.7; }
+
+  .inv-meta { text-align: right; }
+  .inv-meta .inv-title { font-size: 28px; font-weight: 700; color: var(--text); letter-spacing: -0.5px; }
+  .inv-meta table { margin-top: 12px; margin-left: auto; font-size: 12px; border-collapse: collapse; }
+  .inv-meta td { padding: 2px 0 2px 16px; color: var(--muted); }
+  .inv-meta td:first-child { font-weight: 600; color: var(--text); }
+
+  .inv-bill { display: flex; justify-content: space-between; margin-bottom: 40px; padding: 20px 24px; background: var(--bg); border-radius: 10px; }
+  .inv-bill-section h3 { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .inv-bill-section p { font-size: 13px; line-height: 1.7; }
+  .inv-bill-section strong { font-weight: 600; }
+
+  .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 32px; }
+  .inv-table th { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 12px; background: var(--bg); border-bottom: 1px solid var(--border); text-align: left; }
+  .inv-table th:nth-child(2), .inv-table th:nth-child(3), .inv-table th:nth-child(4) { text-align: right; }
+  .inv-table td { padding: 12px 12px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  .inv-table td:nth-child(2), .inv-table td:nth-child(3), .inv-table td:nth-child(4) { text-align: right; white-space: nowrap; }
+  .inv-table tbody tr:last-child td { border-bottom: none; }
+
+  .inv-bottom { display: flex; justify-content: space-between; align-items: flex-start; }
+  .inv-notes { max-width: 340px; }
+  .inv-notes h3 { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .inv-notes p { font-size: 12px; color: var(--muted); line-height: 1.7; }
+
+  .inv-totals { min-width: 220px; }
+  .inv-totals .line { display: flex; justify-content: space-between; font-size: 13px; padding: 5px 0; }
+  .inv-totals .line span:first-child { color: var(--muted); }
+  .inv-totals .line.total { font-size: 17px; font-weight: 700; border-top: 1.5px solid var(--text); margin-top: 6px; padding-top: 10px; }
+
+  .inv-footer { margin-top: 60px; padding-top: 20px; border-top: 1px solid var(--border); text-align: center; font-size: 11px; color: var(--muted); }
+
+  /* ─── PRINT ─── */
+  @media print {
+    #editor { display: none !important; }
+    #invoice { display: block !important; padding: 40px 50px; }
+    #back-btn-wrap { display: none !important; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ EDITOR ═══════════════ -->
+<div id="editor">
+  <div class="editor-header">
+    <h1>Cactus Lab — Invoice Generator</h1>
+    <span>Fill in, then click Generate Invoice</span>
+  </div>
+
+  <!-- Client & Invoice Info -->
+  <div class="card">
+    <h2>Invoice Details</h2>
+    <div class="grid-3">
+      <div>
+        <label>Invoice Number</label>
+        <input type="text" id="inv-number" placeholder="e.g. PDmay003">
+      </div>
+      <div>
+        <label>Invoice Date</label>
+        <input type="date" id="inv-date">
+      </div>
+      <div>
+        <label>Due Date</label>
+        <input type="date" id="inv-due">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Bill To</h2>
+    <div class="grid-2">
+      <div>
+        <label>Client / Company Name</label>
+        <input type="text" id="client-name" placeholder="Pets Delight">
+      </div>
+      <div>
+        <label>Contact Name (optional)</label>
+        <input type="text" id="client-contact" placeholder="e.g. Mohammed Al Rashidi">
+      </div>
+    </div>
+    <div style="margin-top:0.75rem">
+      <label>Client Address / Location (optional)</label>
+      <input type="text" id="client-address" placeholder="e.g. Dubai, UAE">
+    </div>
+  </div>
+
+  <!-- Line Items -->
+  <div class="card">
+    <h2>Line Items</h2>
+    <table id="items-table">
+      <thead>
+        <tr>
+          <th>Description</th>
+          <th style="width:80px">Qty</th>
+          <th style="width:110px">Rate (AED)</th>
+          <th style="width:100px">Amount</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="items-body"></tbody>
+    </table>
+    <button class="btn-ghost" onclick="addItem()">+ Add line item</button>
+
+    <div class="totals-row" style="margin-top:1.25rem">
+      <div class="totals-box">
+        <div class="totals-line"><span>Subtotal</span><span id="sub-display">AED 0.00</span></div>
+        <div class="totals-line">
+          <span>VAT (<input type="number" id="vat-rate" value="5" min="0" max="100" style="width:42px;padding:2px 4px;font-size:13px;display:inline;"> %)</span>
+          <span id="vat-display">AED 0.00</span>
+        </div>
+        <div class="totals-line total"><span>Total</span><span id="total-display">AED 0.00</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Notes -->
+  <div class="card">
+    <h2>Payment & Notes</h2>
+    <div class="grid-2">
+      <div>
+        <label>Payment Details</label>
+        <textarea id="payment-details" placeholder="Bank name&#10;Account name: Cactus Lab FZ LLC&#10;IBAN: &#10;Reference: Invoice number"></textarea>
+      </div>
+      <div>
+        <label>Notes (optional)</label>
+        <textarea id="inv-notes" placeholder="e.g. Thank you for your business. Payment due within 7 days."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <button class="btn-print" onclick="generateInvoice()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Generate Invoice &amp; Print to PDF
+  </button>
+</div>
+
+<!-- ═══════════════ INVOICE VIEW ═══════════════ -->
+<div id="invoice">
+  <div class="inv-header">
+    <div class="inv-brand">
+      <div class="name">CACTUS LAB</div>
+      <div class="tagline">Short-form video &amp; social media agency</div>
+      <div class="address">
+        Cactus Lab FZ LLC<br>
+        Ras Al Khaimah Economic Zone (RAKEZ)<br>
+        United Arab Emirates
+      </div>
+    </div>
+    <div class="inv-meta">
+      <div class="inv-title">INVOICE</div>
+      <table>
+        <tr><td>Invoice No.</td><td id="iv-number"></td></tr>
+        <tr><td>Date</td><td id="iv-date"></td></tr>
+        <tr><td>Due Date</td><td id="iv-due"></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="inv-bill">
+    <div class="inv-bill-section">
+      <h3>Bill To</h3>
+      <p><strong id="iv-client-name"></strong></p>
+      <p id="iv-client-contact" style="color:#6b7280"></p>
+      <p id="iv-client-address" style="color:#6b7280"></p>
+    </div>
+    <div class="inv-bill-section">
+      <h3>From</h3>
+      <p>
+        <strong>Awab Sirelkhatim</strong><br>
+        <span style="color:#6b7280">awab.sirelkhatim@gmail.com</span>
+      </p>
+    </div>
+  </div>
+
+  <table class="inv-table">
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th>Qty</th>
+        <th>Rate</th>
+        <th>Amount</th>
+      </tr>
+    </thead>
+    <tbody id="iv-items"></tbody>
+  </table>
+
+  <div class="inv-bottom">
+    <div class="inv-notes">
+      <div id="iv-payment-block">
+        <h3>Payment Details</h3>
+        <p id="iv-payment"></p>
+      </div>
+      <div id="iv-notes-block" style="margin-top:16px">
+        <h3>Notes</h3>
+        <p id="iv-notes"></p>
+      </div>
+    </div>
+    <div class="inv-totals">
+      <div class="line"><span>Subtotal</span><span id="iv-sub"></span></div>
+      <div class="line"><span id="iv-vat-label">VAT (5%)</span><span id="iv-vat"></span></div>
+      <div class="line total"><span>Total Due</span><span id="iv-total"></span></div>
+    </div>
+  </div>
+
+  <div class="inv-footer">
+    Cactus Lab FZ LLC &nbsp;·&nbsp; RAKEZ, UAE &nbsp;·&nbsp; Thank you for your business.
+  </div>
+
+  <div style="margin-top:2rem; text-align:center" id="back-btn-wrap">
+    <button class="btn-ghost" onclick="backToEditor()" style="margin-right:8px">← Edit Invoice</button>
+    <button class="btn-print" onclick="window.print()" style="display:inline-flex;width:auto">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Print / Save as PDF
+    </button>
+  </div>
+</div>
+
+<script>
+// ─── State ───
+let items = [];
+
+// ─── Init ───
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  const due = new Date(today);
+  due.setDate(due.getDate() + 7);
+  document.getElementById('inv-date').value = fmt(today);
+  document.getElementById('inv-due').value = fmt(due);
+
+  addItem({ desc: 'Social media management — short-form video package (15 videos/month)', qty: 1, rate: 5500 });
+  document.getElementById('vat-rate').addEventListener('input', recalc);
+});
+
+function fmt(d) {
+  return d.toISOString().split('T')[0];
+}
+
+function fmtDisplay(d) {
+  return new Date(d + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function aed(n) {
+  return 'AED ' + Number(n).toLocaleString('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ─── Line Items ───
+function addItem(preset = {}) {
+  const id = Date.now();
+  items.push({ id, desc: preset.desc || '', qty: preset.qty || 1, rate: preset.rate || 0 });
+  renderItems();
+}
+
+function removeItem(id) {
+  items = items.filter(i => i.id !== id);
+  renderItems();
+}
+
+function renderItems() {
+  const tbody = document.getElementById('items-body');
+  tbody.innerHTML = '';
+  items.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.className = 'item-row';
+    tr.innerHTML = `
+      <td><input type="text" value="${esc(item.desc)}" placeholder="Description" onchange="updateItem(${item.id},'desc',this.value)"></td>
+      <td><input type="number" value="${item.qty}" min="0" style="text-align:right" onchange="updateItem(${item.id},'qty',+this.value)"></td>
+      <td><input type="number" value="${item.rate}" min="0" step="0.01" style="text-align:right" onchange="updateItem(${item.id},'rate',+this.value)"></td>
+      <td class="item-amount">${aed(item.qty * item.rate)}</td>
+      <td><button class="btn-remove" onclick="removeItem(${item.id})" title="Remove">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+  recalc();
+}
+
+function updateItem(id, field, val) {
+  const item = items.find(i => i.id === id);
+  if (item) { item[field] = val; recalc(); renderAmounts(); }
+}
+
+function renderAmounts() {
+  const amounts = document.querySelectorAll('.item-amount');
+  amounts.forEach((cell, i) => {
+    if (items[i]) cell.textContent = aed(items[i].qty * items[i].rate);
+  });
+}
+
+function recalc() {
+  const sub = items.reduce((s, i) => s + i.qty * i.rate, 0);
+  const vatRate = parseFloat(document.getElementById('vat-rate').value) || 0;
+  const vat = sub * vatRate / 100;
+  const total = sub + vat;
+  document.getElementById('sub-display').textContent = aed(sub);
+  document.getElementById('vat-display').textContent = aed(vat);
+  document.getElementById('total-display').textContent = aed(total);
+}
+
+function esc(s) { return String(s).replace(/"/g, '&quot;'); }
+
+// ─── Generate ───
+function generateInvoice() {
+  const num = document.getElementById('inv-number').value.trim();
+  const date = document.getElementById('inv-date').value;
+  const due = document.getElementById('inv-due').value;
+  const clientName = document.getElementById('client-name').value.trim();
+
+  if (!num || !clientName || !date || !due) {
+    alert('Please fill in Invoice Number, Date, Due Date, and Client Name.');
+    return;
+  }
+
+  // Populate invoice view
+  document.getElementById('iv-number').textContent = num;
+  document.getElementById('iv-date').textContent = fmtDisplay(date);
+  document.getElementById('iv-due').textContent = fmtDisplay(due);
+  document.getElementById('iv-client-name').textContent = clientName;
+
+  const contact = document.getElementById('client-contact').value.trim();
+  const addr = document.getElementById('client-address').value.trim();
+  document.getElementById('iv-client-contact').textContent = contact;
+  document.getElementById('iv-client-address').textContent = addr;
+
+  // Line items
+  const tbody = document.getElementById('iv-items');
+  tbody.innerHTML = '';
+  items.forEach(item => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${item.desc || '—'}</td>
+      <td>${item.qty}</td>
+      <td>${aed(item.rate)}</td>
+      <td>${aed(item.qty * item.rate)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // Totals
+  const sub = items.reduce((s, i) => s + i.qty * i.rate, 0);
+  const vatRate = parseFloat(document.getElementById('vat-rate').value) || 0;
+  const vat = sub * vatRate / 100;
+  document.getElementById('iv-sub').textContent = aed(sub);
+  document.getElementById('iv-vat-label').textContent = `VAT (${vatRate}%)`;
+  document.getElementById('iv-vat').textContent = aed(vat);
+  document.getElementById('iv-total').textContent = aed(sub + vat);
+
+  // Payment & notes
+  const payment = document.getElementById('payment-details').value.trim();
+  const notes = document.getElementById('inv-notes').value.trim();
+  document.getElementById('iv-payment').innerHTML = payment.replace(/\n/g, '<br>');
+  document.getElementById('iv-notes').innerHTML = notes.replace(/\n/g, '<br>');
+  document.getElementById('iv-payment-block').style.display = payment ? '' : 'none';
+  document.getElementById('iv-notes-block').style.display = notes ? '' : 'none';
+
+  // Switch view
+  document.getElementById('editor').style.display = 'none';
+  document.getElementById('invoice').style.display = 'block';
+  window.scrollTo(0, 0);
+  setTimeout(() => window.print(), 300);
+}
+
+function backToEditor() {
+  document.getElementById('invoice').style.display = 'none';
+  document.getElementById('editor').style.display = 'block';
+}
+</script>
+</body>
+</html>
