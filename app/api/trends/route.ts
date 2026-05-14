@@ -53,13 +53,11 @@ Return your response as a valid JSON object with this exact structure:
   ]
 }`;
 
-    const webSearchTool: Anthropic.Messages.Tool = {
+    // web_search_20250305 is a built-in Anthropic server tool — no input_schema needed
+    const webSearchTool = {
+      type: "web_search_20250305",
       name: "web_search",
-      // The type assertion here is intentional — web_search_20250305 is a valid
-      // Anthropic tool type that the SDK supports but types may lag behind.
-      type: "web_search_20250305" as Anthropic.Messages.Tool["type"],
-      input_schema: { type: "object", properties: {} },
-    };
+    } as unknown as Anthropic.Messages.Tool;
 
     const response = await anthropic.messages.create({
       model: MODEL,
@@ -69,7 +67,6 @@ Return your response as a valid JSON object with this exact structure:
       messages: [{ role: "user", content: prompt }],
     });
 
-    // Extract text from response
     let responseText = "";
     for (const block of response.content) {
       if (block.type === "text") {
@@ -77,7 +74,6 @@ Return your response as a valid JSON object with this exact structure:
       }
     }
 
-    // Parse JSON from response
     const jsonMatch = responseText.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
       throw new Error("No JSON found in response");

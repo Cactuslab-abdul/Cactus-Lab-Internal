@@ -7,20 +7,13 @@ import {
   TrendingUp,
   Wand2,
   Link2,
-  BookOpen,
-  Leaf,
-  ExternalLink,
   Users,
-  FileText,
-  CheckSquare,
   GitBranch,
   Mail,
-  ClipboardList,
   Receipt,
   FileSignature,
   MessageSquare,
-  Target,
-  ListChecks,
+  BarChart2,
   LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -37,32 +30,22 @@ const navSections = [
     items: [
       { href: "/pipeline", label: "Pipeline", icon: GitBranch },
       { href: "/outreach", label: "Outreach", icon: Mail },
+      { href: "/scripts", label: "Scripts", icon: MessageSquare },
     ],
   },
   {
-    label: "PLAYBOOKS",
+    label: "CLIENTS",
     items: [
-      { href: "/scripts", label: "Outreach Scripts", icon: MessageSquare },
-      { href: "/sales-playbook", label: "Sales Playbook", icon: Target },
-      { href: "/sops", label: "SOPs & Ops", icon: ListChecks },
-    ],
-  },
-  {
-    label: "OPERATIONS",
-    items: [
-      { href: "/clients", label: "Client Plans", icon: Users },
-      { href: "/checklist", label: "Ops Checklist", icon: ClipboardList },
-      { href: "/qc", label: "QC Checklist", icon: CheckSquare },
+      { href: "/clients", label: "Clients", icon: Users },
+      { href: "/growth", label: "Growth", icon: TrendingUp },
     ],
   },
   {
     label: "CONTENT",
     items: [
-      { href: "/generate", label: "Content Generator", icon: Wand2 },
-      { href: "/captions", label: "Caption Library", icon: FileText },
+      { href: "/generate", label: "Generator", icon: Wand2 },
       { href: "/analyze", label: "URL Analyzer", icon: Link2 },
-      { href: "/trends", label: "Trend Scout", icon: TrendingUp },
-      { href: "/playbook", label: "Growth Playbook", icon: BookOpen },
+      { href: "/trends", label: "Trend Scout", icon: BarChart2 },
     ],
   },
   {
@@ -88,11 +71,9 @@ export default function Sidebar() {
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-[#111111] border-r border-[#1e1e1e] flex flex-col z-50 overflow-y-auto">
       {/* Logo */}
-      <div className="p-6 border-b border-[#1e1e1e] flex-shrink-0">
+      <div className="p-5 border-b border-[#1e1e1e] flex-shrink-0">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Leaf className="w-5 h-5 text-white" />
-          </div>
+          <img src="/logo-cactus.png" alt="Cactus Lab" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
           <div>
             <h1 className="text-white font-bold text-sm leading-tight">Cactus Lab</h1>
             <p className="text-[#666] text-xs">Agency OS</p>
@@ -136,25 +117,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-4 border-t border-[#1e1e1e] space-y-3 flex-shrink-0">
-        {/* Growth goal badge */}
-        <div className="bg-green-500/5 border border-green-500/15 rounded-xl p-3">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-green-400 text-xs font-semibold">Growth Goal</span>
-            <span className="text-green-400 text-xs">May 31</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="text-white text-sm font-bold">15 → 10K</div>
-            <div className="text-[#555] text-xs">followers</div>
-          </div>
-          <div className="mt-2 bg-[#1a1a1a] rounded-full h-1.5 overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full"
-              style={{ width: "0.15%" }}
-            ></div>
-          </div>
-        </div>
-
+      <div className="p-4 border-t border-[#1e1e1e] flex-shrink-0">
         {/* Agency info */}
         <div className="flex items-center gap-2 px-1">
           <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-xs font-bold text-white">
