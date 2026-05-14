@@ -32,6 +32,11 @@ interface Client {
   contactInstagram: string;
   startDate: string;
   notes: string;
+  billToCompany: string;
+  billToAddress: string;
+  billToTrn: string;
+  invoiceEmails: string;
+  invoiceDesc: string;
 }
 
 const EMPTY_CLIENT: Omit<Client, "id"> = {
@@ -47,6 +52,11 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   contactInstagram: "",
   startDate: new Date().toISOString().split("T")[0],
   notes: "",
+  billToCompany: "",
+  billToAddress: "",
+  billToTrn: "",
+  invoiceEmails: "",
+  invoiceDesc: "",
 };
 
 const DEFAULT_CLIENTS: Client[] = [{
@@ -63,6 +73,11 @@ const DEFAULT_CLIENTS: Client[] = [{
   contactInstagram: "@petsdelightdubai",
   startDate: "2025-03-01",
   notes: "",
+  billToCompany: "Arab Land Trading LLC",
+  billToAddress: "Al Quoz Industrial Area 1, Street 8, Warehouse 1-4\nP.O. Box 29893, Dubai, UAE",
+  billToTrn: "100544168600003",
+  invoiceEmails: "",
+  invoiceDesc: "Short-form video package — social media management (18 videos/month, 15 stories and 8 LinkedIn posts)",
 }];
 
 function getNicheColor(niche: string) {
@@ -213,6 +228,43 @@ function ClientCard({
           </div>
         </div>
 
+        {/* Invoice / Billing fields */}
+        <div className="border-t border-[#1a1a1a] pt-4">
+          <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">Invoice &amp; Billing Details</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — Legal Company Name</span>
+              <input value={form.billToCompany} onChange={e => setForm(f => ({ ...f, billToCompany: e.target.value }))}
+                placeholder="e.g. Arab Land Trading LLC"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — TRN</span>
+              <input value={form.billToTrn} onChange={e => setForm(f => ({ ...f, billToTrn: e.target.value }))}
+                placeholder="e.g. 100544168600003"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+            <label className="block md:col-span-2">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — Address</span>
+              <textarea value={form.billToAddress} onChange={e => setForm(f => ({ ...f, billToAddress: e.target.value }))}
+                rows={2} placeholder="Street, area, P.O. Box, city, country"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none" />
+            </label>
+            <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Email(s)</span>
+              <input value={form.invoiceEmails} onChange={e => setForm(f => ({ ...f, invoiceEmails: e.target.value }))}
+                placeholder="billing@client.ae, cc@client.ae"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Description</span>
+              <input value={form.invoiceDesc} onChange={e => setForm(f => ({ ...f, invoiceDesc: e.target.value }))}
+                placeholder="e.g. Short-form video package (18 videos/month)"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+          </div>
+        </div>
+
         <div className="flex gap-3 pt-2">
           <button onClick={save} className="bg-green-500 hover:bg-green-400 text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Save Changes</button>
           <button onClick={cancel} className="bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-colors">Cancel</button>
@@ -331,7 +383,19 @@ export default function ClientsPage() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0 && "logoUrl" in parsed[0]) {
-          setClients(parsed);
+          const migrated = parsed.map((c: Client) => {
+            const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
+            return {
+              ...c,
+              billToCompany: (c as Client).billToCompany ?? defaults?.billToCompany ?? "",
+              billToAddress: (c as Client).billToAddress ?? defaults?.billToAddress ?? "",
+              billToTrn: (c as Client).billToTrn ?? defaults?.billToTrn ?? "",
+              invoiceEmails: (c as Client).invoiceEmails ?? defaults?.invoiceEmails ?? "",
+              invoiceDesc: (c as Client).invoiceDesc ?? defaults?.invoiceDesc ?? "",
+            };
+          });
+          setClients(migrated);
+          localStorage.setItem("cactus-clients", JSON.stringify(migrated));
           return;
         }
       }

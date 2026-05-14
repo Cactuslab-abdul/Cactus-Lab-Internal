@@ -44,8 +44,8 @@ const DEFAULT_CLIENT: GrowthClient = {
   name: "Pets Delight",
   platform: "Instagram",
   startFollowers: 0,
-  currentFollowers: 0,
-  goalFollowers: 10000,
+  currentFollowers: 7260,
+  goalFollowers: 15000,
   goalDate: "2026-12-31",
   entries: [],
 };
@@ -86,7 +86,19 @@ export default function GrowthTrackerPage() {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          setClients(parsed);
+          const migrated = parsed.map((c: GrowthClient) => {
+            if (c.id === "pets-delight") {
+              return {
+                ...c,
+                currentFollowers: c.currentFollowers > 0 ? c.currentFollowers : 7260,
+                goalFollowers: c.goalFollowers < 15000 ? 15000 : c.goalFollowers,
+                goalDate: "2026-12-31",
+              };
+            }
+            return c;
+          });
+          setClients(migrated);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
           return;
         }
       }

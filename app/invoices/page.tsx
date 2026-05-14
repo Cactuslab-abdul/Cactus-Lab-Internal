@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Trash2, Printer, ArrowLeft, Receipt } from "lucide-react";
+import { Plus, Trash2, Printer, ArrowLeft, Receipt, Send, X, Zap, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface LineItem {
   id: number;
   desc: string;
   qty: number;
   rate: number;
+  notes: string;
 }
 
 function fmt(d: Date) {
@@ -62,19 +63,33 @@ interface ReceiptData {
   notes: string;
 }
 
-type DocMode = "invoice" | "receipt";
+type DocMode = "quick" | "invoice" | "receipt";
+
+interface QuickClient {
+  id: string;
+  name: string;
+  billToCompany?: string;
+  billToAddress?: string;
+  billToTrn?: string;
+  contactName?: string;
+  contactWhatsApp?: string;
+  contactEmail?: string;
+  retainerAED?: number;
+  invoiceEmails?: string;
+  invoiceDesc?: string;
+}
 
 export default function InvoicesPage() {
   const today = new Date();
   const dueDate = new Date(today);
   dueDate.setDate(dueDate.getDate() + 7);
 
-  const [docMode, setDocMode] = useState<DocMode>("invoice");
+  const [docMode, setDocMode] = useState<DocMode>("quick");
   const [view, setView] = useState<"editor" | "invoice" | "receiptView">("editor");
 
   // Invoice state
   const [items, setItems] = useState<LineItem[]>([
-    { id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: 5500 },
+    { id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: 5500, notes: "" },
   ]);
   const [form, setForm] = useState({
     number: "",
@@ -101,7 +116,10 @@ export default function InvoicesPage() {
   });
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
-  const [savedClients, setSavedClients] = useState<Array<{ id: string; name: string; contactName?: string; contactEmail?: string; contactWhatsApp?: string; retainerAED?: number }>>([]);
+  const [savedClients, setSavedClients] = useState<QuickClient[]>([]);
+  const [quickYear, setQuickYear] = useState(new Date().getFullYear());
+  const [currentClient, setCurrentClient] = useState<QuickClient | null>(null);
+  const [sendModal, setSendModal] = useState({ show: false, to: "", cc: "", sending: false, sent: false, error: "" });
 
   useEffect(() => {
     const last = localStorage.getItem("cactus-last-invoice-num");
@@ -122,10 +140,18 @@ export default function InvoicesPage() {
     const client = savedClients.find(c => c.id === clientId);
     if (!client) return;
     const contact = [client.contactName, client.contactWhatsApp || client.contactEmail].filter(Boolean).join(" — ");
-    setForm(f => ({ ...f, clientName: client.name, clientContact: contact }));
+    setForm(f => ({
+      ...f,
+      clientName: client.billToCompany || client.name,
+      clientContact: contact,
+      clientAddress: client.billToAddress || "",
+      clientTrn: client.billToTrn || "",
+    }));
     if (client.retainerAED) {
-      setItems([{ id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: client.retainerAED }]);
+      const desc = client.invoiceDesc || "Social media management — short-form video package";
+      setItems([{ id: 1, desc, qty: 1, rate: client.retainerAED, notes: "" }]);
     }
+    setCurrentClient(client);
   };
 
   const subtotal = items.reduce((s, i) => s + i.qty * i.rate, 0);
@@ -133,7 +159,7 @@ export default function InvoicesPage() {
   const total = subtotal + vat;
 
   const addItem = () => {
-    setItems(prev => [...prev, { id: Date.now(), desc: "", qty: 1, rate: 0 }]);
+    setItems(prev => [...prev, { id: Date.now(), desc: "", qty: 1, rate: 0, notes: "" }]);
   };
 
   const removeItem = (id: number) => {
@@ -142,6 +168,67 @@ export default function InvoicesPage() {
 
   const updateItem = (id: number, field: keyof LineItem, val: string | number) => {
     setItems(prev => prev.map(i => i.id === id ? { ...i, [field]: val } : i));
+  };
+
+  const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  const quickGenerate = (client: QuickClient, month: number, year: number) => {
+    const initials = client.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+    const invoiceNum = `${initials}${MONTH_SHORT[month]}${String(year).slice(2)}001`;
+    const invoiceDate = new Date(year, month, 1);
+    const dueDateObj = new Date(year, month, 8);
+    const desc = client.invoiceDesc || "Social media management — short-form video package";
+    const rate = client.retainerAED || 5500;
+    const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: "" }];
+    const data: InvoiceData = {
+      number: invoiceNum,
+      date: fmt(invoiceDate),
+      due: fmt(dueDateObj),
+      clientName: client.billToCompany || client.name,
+      clientContact: client.contactName || "",
+      clientAddress: client.billToAddress || "",
+      clientTrn: client.billToTrn || "",
+      items: newItems,
+      vatRate: 5,
+      paymentDetails: DEFAULT_PAYMENT_DETAILS,
+      notes: "",
+    };
+    setForm({
+      number: invoiceNum,
+      date: fmt(invoiceDate),
+      due: fmt(dueDateObj),
+      clientName: data.clientName,
+      clientContact: data.clientContact,
+      clientAddress: data.clientAddress,
+      clientTrn: data.clientTrn,
+      vatRate: 5,
+      paymentDetails: DEFAULT_PAYMENT_DETAILS,
+      notes: "",
+    });
+    setItems(newItems);
+    setInvoiceData(data);
+    setCurrentClient(client);
+    localStorage.setItem("cactus-last-invoice-num", invoiceNum);
+    setView("invoice");
+    window.scrollTo(0, 0);
+  };
+
+  const handleSendInvoice = async () => {
+    if (!invoiceData || !sendModal.to.trim()) return;
+    setSendModal(m => ({ ...m, sending: true, error: "" }));
+    try {
+      const res = await fetch("/api/send-invoice-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ to: sendModal.to, cc: sendModal.cc || undefined, invoiceData }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to send");
+      setSendModal(m => ({ ...m, sending: false, sent: true }));
+      setTimeout(() => setSendModal({ show: false, to: "", cc: "", sending: false, sent: false, error: "" }), 2500);
+    } catch (err) {
+      setSendModal(m => ({ ...m, sending: false, error: err instanceof Error ? err.message : "Failed to send" }));
+    }
   };
 
   const generate = () => {
@@ -203,13 +290,20 @@ export default function InvoicesPage() {
         <style>{printStyle}</style>
 
         {/* Controls — hidden on print */}
-        <div className="no-print mb-6 flex gap-3">
+        <div className="no-print mb-6 flex gap-3 flex-wrap">
           <button
             onClick={() => setView("editor")}
             className="flex items-center gap-2 text-sm text-[#888] hover:text-white border border-[#2a2a2a] hover:border-[#444] px-4 py-2 rounded-lg transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             Edit Invoice
+          </button>
+          <button
+            onClick={() => setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: "", sending: false, sent: false, error: "" })}
+            className="flex items-center gap-2 text-sm bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 font-semibold px-4 py-2 rounded-lg transition-colors"
+          >
+            <Send className="w-4 h-4" />
+            Send via Email
           </button>
           <button
             onClick={() => window.print()}
@@ -219,6 +313,63 @@ export default function InvoicesPage() {
             Print / Save as PDF
           </button>
         </div>
+
+        {/* Send Invoice Modal */}
+        {sendModal.show && (
+          <div className="no-print fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-white font-semibold text-lg">Send Invoice</h2>
+                <button onClick={() => setSendModal(m => ({ ...m, show: false }))} className="text-[#555] hover:text-white transition-colors"><X className="w-5 h-5" /></button>
+              </div>
+              {sendModal.sent ? (
+                <div className="text-center py-6">
+                  <div className="w-12 h-12 bg-green-500/10 border border-green-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Send className="w-6 h-6 text-green-400" />
+                  </div>
+                  <p className="text-white font-semibold">Invoice sent!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-[#888] text-xs font-medium block mb-1.5">To (comma-separated)</label>
+                    <input
+                      value={sendModal.to}
+                      onChange={e => setSendModal(m => ({ ...m, to: e.target.value }))}
+                      placeholder="billing@client.ae"
+                      className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[#888] text-xs font-medium block mb-1.5">CC (optional)</label>
+                    <input
+                      value={sendModal.cc}
+                      onChange={e => setSendModal(m => ({ ...m, cc: e.target.value }))}
+                      placeholder="awab.sirelkhatim@gmail.com"
+                      className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
+                    />
+                  </div>
+                  {sendModal.error && <p className="text-red-400 text-xs">{sendModal.error}</p>}
+                  <div className="flex gap-3 pt-1">
+                    <button
+                      onClick={() => setSendModal(m => ({ ...m, show: false }))}
+                      className="flex-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-white font-medium px-4 py-2.5 rounded-lg text-sm transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSendInvoice}
+                      disabled={!sendModal.to.trim() || sendModal.sending}
+                      className="flex-1 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold px-4 py-2.5 rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                    >
+                      {sendModal.sending ? <><div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />Sending…</> : <><Send className="w-4 h-4" />Send Invoice</>}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Invoice document */}
         <div id="print-invoice" style={{ maxWidth: 760, margin: "0 auto", padding: "60px", background: "#fff", color: "#111", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
@@ -277,7 +428,10 @@ export default function InvoicesPage() {
             <tbody>
               {invoiceData.items.map(item => (
                 <tr key={item.id}>
-                  <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb" }}>{item.desc || "—"}</td>
+                  <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb" }}>
+                    {item.desc || "—"}
+                    {item.notes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.notes}</div>}
+                  </td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>{item.qty}</td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{aed(item.rate)}</td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{aed(item.qty * item.rate)}</td>
@@ -408,20 +562,90 @@ export default function InvoicesPage() {
 
       {/* Mode switcher */}
       <div className="flex gap-1 bg-[#111] border border-[#1e1e1e] rounded-xl p-1 w-fit">
-        {(["invoice", "receipt"] as DocMode[]).map(mode => (
+        {(["quick", "invoice", "receipt"] as DocMode[]).map(mode => (
           <button
             key={mode}
             onClick={() => setDocMode(mode)}
-            className={`px-5 py-2 rounded-lg text-sm font-medium transition-all capitalize ${
+            className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               docMode === mode
                 ? "bg-green-500/10 border border-green-500/30 text-green-400"
                 : "text-[#666] hover:text-white"
             }`}
           >
-            {mode === "invoice" ? "Invoice" : "Receipt"}
+            {mode === "quick" && <Zap className="w-3.5 h-3.5" />}
+            {mode === "quick" ? "Quick Generate" : mode === "invoice" ? "Invoice" : "Receipt"}
           </button>
         ))}
       </div>
+
+      {/* ── QUICK GENERATE ── */}
+      {docMode === "quick" && (
+        <div className="max-w-3xl space-y-5">
+          {/* Year nav */}
+          <div className="flex items-center gap-3">
+            <button onClick={() => setQuickYear(y => y - 1)} className="p-1.5 text-[#555] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-all">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-white font-semibold text-lg w-16 text-center">{quickYear}</span>
+            <button onClick={() => setQuickYear(y => y + 1)} className="p-1.5 text-[#555] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-all">
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+
+          {savedClients.length === 0 ? (
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-10 text-center">
+              <Zap className="w-7 h-7 text-[#333] mx-auto mb-3" />
+              <p className="text-[#555] text-sm">No clients yet — add clients in the Clients section to use Quick Generate.</p>
+            </div>
+          ) : (
+            savedClients.map(client => {
+              const now = new Date();
+              return (
+                <div key={client.id} className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-sm font-bold text-green-400 flex-shrink-0">
+                      {client.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-white font-semibold text-sm">{client.name}</p>
+                      {client.billToCompany && client.billToCompany !== client.name && (
+                        <p className="text-[#555] text-xs">{client.billToCompany}</p>
+                      )}
+                    </div>
+                    {client.retainerAED && (
+                      <span className="ml-auto text-green-400 text-sm font-semibold">AED {client.retainerAED.toLocaleString()}/mo</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {MONTH_SHORT.map((m, i) => {
+                      const isPast = (quickYear < now.getFullYear()) || (quickYear === now.getFullYear() && i < now.getMonth());
+                      const isCurrent = quickYear === now.getFullYear() && i === now.getMonth();
+                      return (
+                        <button
+                          key={m}
+                          onClick={() => quickGenerate(client, i, quickYear)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                            isCurrent
+                              ? "bg-green-500 text-black font-bold"
+                              : isPast
+                              ? "bg-[#1a1a1a] border border-[#2a2a2a] text-[#555] hover:text-white hover:border-[#444]"
+                              : "bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-green-500/30 hover:bg-green-500/5"
+                          }`}
+                        >
+                          {m}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {!client.invoiceEmails && (
+                    <p className="text-[#444] text-xs mt-3">No invoice email set — add one in Clients to enable one-click sending.</p>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
+      )}
 
       {/* ── INVOICE FORM ── */}
       {docMode === "invoice" && (
@@ -522,28 +746,36 @@ export default function InvoicesPage() {
                 <span className="col-span-1"></span>
               </div>
               {items.map(item => (
-                <div key={item.id} className="grid grid-cols-12 gap-2 items-center">
+                <div key={item.id} className="space-y-1.5">
+                  <div className="grid grid-cols-12 gap-2 items-center">
+                    <input
+                      className="col-span-6 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
+                      placeholder="Description"
+                      value={item.desc}
+                      onChange={e => updateItem(item.id, "desc", e.target.value)}
+                    />
+                    <input
+                      type="number"
+                      className="col-span-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none focus:border-green-500/50"
+                      value={item.qty}
+                      onChange={e => updateItem(item.id, "qty", parseFloat(e.target.value) || 0)}
+                    />
+                    <input
+                      type="number"
+                      className="col-span-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none focus:border-green-500/50"
+                      value={item.rate}
+                      onChange={e => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)}
+                    />
+                    <button onClick={() => removeItem(item.id)} className="col-span-1 text-[#444] hover:text-red-400 transition-colors p-1 flex justify-center">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                   <input
-                    className="col-span-6 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
-                    placeholder="Description"
-                    value={item.desc}
-                    onChange={e => updateItem(item.id, "desc", e.target.value)}
+                    className="w-full bg-[#161616] border border-[#222] rounded-lg px-3 py-1.5 text-xs text-[#777] placeholder-[#444] focus:outline-none focus:border-green-500/30"
+                    placeholder="Notes (e.g. 18 videos/month, 15 stories and 8 LinkedIn posts)"
+                    value={item.notes}
+                    onChange={e => updateItem(item.id, "notes", e.target.value)}
                   />
-                  <input
-                    type="number"
-                    className="col-span-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none focus:border-green-500/50"
-                    value={item.qty}
-                    onChange={e => updateItem(item.id, "qty", parseFloat(e.target.value) || 0)}
-                  />
-                  <input
-                    type="number"
-                    className="col-span-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none focus:border-green-500/50"
-                    value={item.rate}
-                    onChange={e => updateItem(item.id, "rate", parseFloat(e.target.value) || 0)}
-                  />
-                  <button onClick={() => removeItem(item.id)} className="col-span-1 text-[#444] hover:text-red-400 transition-colors p-1 flex justify-center">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                 </div>
               ))}
             </div>

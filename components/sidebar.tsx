@@ -57,8 +57,8 @@ const allNavSections = [
     label: "FINANCE",
     items: [
       { href: "/invoices", label: "Invoices", icon: Receipt, adminOnly: true },
-      { href: "/proposals", label: "Proposals", icon: FileSignature, adminOnly: true },
       { href: "/payments", label: "Payments", icon: CreditCard, adminOnly: true },
+      { href: "/proposals", label: "Proposals", icon: FileSignature, adminOnly: true },
     ],
   },
 ];
