@@ -19,45 +19,60 @@ import {
   Upload,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { UserRole } from "@/lib/useRole";
 
-const navSections = [
+const allNavSections = [
   {
     label: "OVERVIEW",
+    adminOnly: false,
     items: [
-      { href: "/", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     ],
   },
   {
     label: "SALES",
+    adminOnly: true,
     items: [
-      { href: "/pipeline", label: "Pipeline", icon: GitBranch },
-      { href: "/outreach", label: "Outreach", icon: Mail },
-      { href: "/scripts", label: "Scripts", icon: MessageSquare },
+      { href: "/pipeline", label: "Pipeline", icon: GitBranch, adminOnly: true },
+      { href: "/outreach", label: "Outreach", icon: Mail, adminOnly: true },
+      { href: "/scripts", label: "Scripts", icon: MessageSquare, adminOnly: true },
     ],
   },
   {
     label: "CLIENTS",
+    adminOnly: false,
     items: [
-      { href: "/clients", label: "Clients", icon: Users },
-      { href: "/growth", label: "Growth", icon: TrendingUp },
+      { href: "/clients", label: "Clients", icon: Users, adminOnly: false },
+      { href: "/growth", label: "Growth", icon: TrendingUp, adminOnly: true },
     ],
   },
   {
     label: "CONTENT",
+    adminOnly: false,
     items: [
-      { href: "/generate", label: "Generator", icon: Wand2 },
-      { href: "/analyze", label: "URL Analyzer", icon: Link2 },
-      { href: "/trends", label: "Trend Scout", icon: BarChart2 },
+      { href: "/generate", label: "Generator", icon: Wand2, adminOnly: false },
+      { href: "/analyze", label: "URL Analyzer", icon: Link2, adminOnly: false },
+      { href: "/trends", label: "Trend Scout", icon: BarChart2, adminOnly: false },
     ],
   },
   {
     label: "FINANCE",
+    adminOnly: true,
     items: [
-      { href: "/invoices", label: "Invoices", icon: Receipt },
-      { href: "/proposals", label: "Proposals", icon: FileSignature },
+      { href: "/invoices", label: "Invoices", icon: Receipt, adminOnly: true },
+      { href: "/proposals", label: "Proposals", icon: FileSignature, adminOnly: true },
     ],
   },
 ];
+
+function getNavSections(role: UserRole) {
+  return allNavSections
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => !item.adminOnly || role === "admin"),
+    }))
+    .filter(section => section.items.length > 0);
+}
 
 interface UserProfile {
   id: string;
@@ -74,6 +89,7 @@ export default function Sidebar() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [uploading, setUploading] = useState(false);
   const [avatarKey, setAvatarKey] = useState(0);
+  const [role, setRole] = useState<UserRole>("admin");
 
   useEffect(() => {
     const supabase = createClient();
@@ -94,6 +110,7 @@ export default function Sidebar() {
         avatarUrl: meta.avatar_url || null,
         initials,
       });
+      setRole(meta.role === "editor" ? "editor" : "admin");
     });
   }, []);
 
@@ -161,7 +178,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-5">
-        {navSections.map((section) => (
+        {getNavSections(role).map((section) => (
           <div key={section.label}>
             <p className="text-[#444] text-[10px] font-semibold uppercase tracking-wider px-3 mb-1.5">
               {section.label}

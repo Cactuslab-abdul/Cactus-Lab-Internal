@@ -22,6 +22,23 @@ interface GrowthClient {
 
 const STORAGE_KEY = "cactus-growth-clients";
 
+const CLIENT_LOGOS: Record<string, string> = {
+  "Pets Delight": "/logo-pets-delight.jpg",
+};
+
+function ClientLogo({ name, size = "sm" }: { name: string; size?: "sm" | "lg" }) {
+  const logoUrl = CLIENT_LOGOS[name];
+  const dim = size === "lg" ? "w-12 h-12" : "w-9 h-9";
+  if (logoUrl) {
+    return <img src={logoUrl} alt={name} className={`${dim} rounded-xl object-cover flex-shrink-0`} />;
+  }
+  return (
+    <div className={`${dim} rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-sm font-bold text-white flex-shrink-0`}>
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+}
+
 const DEFAULT_CLIENT: GrowthClient = {
   id: "pets-delight",
   name: "Pets Delight",
@@ -270,9 +287,7 @@ export default function GrowthTrackerPage() {
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-sm font-bold text-white flex-shrink-0">
-                        {client.name.charAt(0).toUpperCase()}
-                      </div>
+                      <ClientLogo name={client.name} size="sm" />
                       <div>
                         <h3 className="text-white font-semibold text-base">{client.name}</h3>
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${platColor}`}>

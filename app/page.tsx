@@ -21,8 +21,10 @@ import {
 interface Client {
   id: string;
   name: string;
+  logoUrl?: string;
   niche?: string;
-  videosPosted?: number;
+  retainerAED?: number;
+  // legacy fields (old format)
   monthlyRetainer?: number;
 }
 
@@ -216,7 +218,7 @@ export default function Dashboard() {
 
   const activeLeads = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost");
   const followUpsDue = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost" && l.followUpDate && l.followUpDate <= todayStr);
-  const monthlyRevenue = clients.reduce((sum, c) => sum + (c.monthlyRetainer ?? 5500), 0);
+  const monthlyRevenue = clients.reduce((sum, c) => sum + (c.retainerAED ?? c.monthlyRetainer ?? 5500), 0);
   const upcomingFollowUps = [...activeLeads].filter(l => l.followUpDate).sort((a, b) => a.followUpDate! < b.followUpDate! ? -1 : 1).slice(0, 3);
 
   function followUpColor(date: string) {
@@ -391,29 +393,28 @@ export default function Dashboard() {
               </div>
             ) : (
               <div className="space-y-3">
-                {clients.map((client) => {
-                  const posted = client.videosPosted ?? 0;
-                  const pct = Math.min(100, Math.round((posted / 15) * 100));
-                  return (
-                    <div key={client.id} className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                {clients.map((client) => (
+                  <div key={client.id} className="flex items-center gap-3">
+                    {client.logoUrl ? (
+                      <img src={client.logoUrl} alt={client.name} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
                         {client.name.charAt(0).toUpperCase()}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-white text-sm font-medium truncate">{client.name}</span>
-                          {client.niche && (
-                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${getNicheColor(client.niche)}`}>{client.niche}</span>
-                          )}
-                          <span className="text-[#555] text-xs ml-auto flex-shrink-0">{posted}/15 videos</span>
-                        </div>
-                        <div className="h-1 bg-[#1a1a1a] rounded-full overflow-hidden">
-                          <div className="h-full bg-green-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-                        </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white text-sm font-medium truncate">{client.name}</span>
+                        {client.niche && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${getNicheColor(client.niche)}`}>{client.niche}</span>
+                        )}
+                        <span className="text-green-400 text-xs ml-auto flex-shrink-0 font-medium">
+                          AED {(client.retainerAED ?? client.monthlyRetainer ?? 5500).toLocaleString()}/mo
+                        </span>
                       </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </div>
