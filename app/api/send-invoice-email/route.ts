@@ -137,9 +137,30 @@ function buildInvoiceHtml(inv: InvoiceData): string {
   `;
 }
 
+function buildEmailHtml(invoiceData: InvoiceData, messageBody?: string): string {
+  const invoiceHtml = buildInvoiceHtml(invoiceData);
+  if (!messageBody) return invoiceHtml;
+
+  const bodyHtml = messageBody
+    .split("\n\n")
+    .map(p => `<p style="margin:0 0 16px;line-height:1.7;font-size:15px;color:#111;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">${p.replace(/\n/g, "<br>")}</p>`)
+    .join("");
+
+  return `
+    <div style="max-width:700px;margin:0 auto;background:#fff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="padding:36px 36px 28px;">
+        <div style="font-size:18px;font-weight:700;color:#1D9E75;margin-bottom:2px;">CACTUS LAB</div>
+        <div style="font-size:11px;color:#6b7280;margin-bottom:24px;">Short-form video &amp; social media agency</div>
+        <div style="border-top:1px solid #f3f4f6;padding-top:20px;">${bodyHtml}</div>
+      </div>
+      <div style="border-top:3px solid #f3f4f6;">${invoiceHtml}</div>
+    </div>
+  `;
+}
+
 export async function POST(req: NextRequest) {
   try {
-    const { to, cc, invoiceData } = await req.json();
+    const { to, cc, messageBody, invoiceData } = await req.json();
 
     if (!to || !invoiceData) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -155,7 +176,7 @@ export async function POST(req: NextRequest) {
     const ccList = cc ? (cc as string).split(",").map((e: string) => e.trim()).filter(Boolean) : [];
 
     const subject = `Invoice ${invoiceData.number} — ${invoiceData.clientName} | Cactus Lab`;
-    const html = buildInvoiceHtml(invoiceData as InvoiceData);
+    const html = buildEmailHtml(invoiceData as InvoiceData, messageBody as string | undefined);
 
     const { data, error } = await resend.emails.send({
       from: "Cactus Lab <hello@contact.cactuslab.ae>",

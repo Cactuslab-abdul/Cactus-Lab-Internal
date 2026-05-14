@@ -119,7 +119,19 @@ export default function InvoicesPage() {
   const [savedClients, setSavedClients] = useState<QuickClient[]>([]);
   const [quickYear, setQuickYear] = useState(new Date().getFullYear());
   const [currentClient, setCurrentClient] = useState<QuickClient | null>(null);
-  const [sendModal, setSendModal] = useState({ show: false, to: "", cc: "", sending: false, sent: false, error: "" });
+  const [sendModal, setSendModal] = useState({ show: false, to: "", cc: "", contactName: "", messageBody: "", sending: false, sent: false, error: "" });
+
+  const buildMessageTemplate = (contactName: string, invoiceDate: string) => {
+    const d = new Date(invoiceDate + "T00:00:00");
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const start = `${pad(1)}/${pad(month + 1)}/${year}`;
+    const end = `${pad(lastDay)}/${pad(month + 1)}/${year}`;
+    const greeting = contactName ? `Dear ${contactName},` : "Dear Sir/Madam,";
+    return `${greeting}\n\nI hope you're doing well.\n\nPlease find attached the invoice covering ${start} to ${end}. Kindly review and process it at your convenience.\n\nBest regards,\nAwab Sirelkhatim`;
+  };
 
   useEffect(() => {
     const last = localStorage.getItem("cactus-last-invoice-num");
@@ -220,12 +232,12 @@ export default function InvoicesPage() {
       const res = await fetch("/api/send-invoice-email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: sendModal.to, cc: sendModal.cc || undefined, invoiceData }),
+        body: JSON.stringify({ to: sendModal.to, cc: sendModal.cc || undefined, messageBody: sendModal.messageBody || undefined, invoiceData }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Failed to send");
       setSendModal(m => ({ ...m, sending: false, sent: true }));
-      setTimeout(() => setSendModal({ show: false, to: "", cc: "", sending: false, sent: false, error: "" }), 2500);
+      setTimeout(() => setSendModal({ show: false, to: "", cc: "", contactName: "", messageBody: "", sending: false, sent: false, error: "" }), 2500);
     } catch (err) {
       setSendModal(m => ({ ...m, sending: false, error: err instanceof Error ? err.message : "Failed to send" }));
     }
@@ -299,7 +311,11 @@ export default function InvoicesPage() {
             Edit Invoice
           </button>
           <button
-            onClick={() => setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: "", sending: false, sent: false, error: "" })}
+            onClick={() => {
+              const name = currentClient?.contactName || "";
+              const msgBody = invoiceData ? buildMessageTemplate(name, invoiceData.date) : "";
+              setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: "", contactName: name, messageBody: msgBody, sending: false, sent: false, error: "" });
+            }}
             className="flex items-center gap-2 text-sm bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 font-semibold px-4 py-2 rounded-lg transition-colors"
           >
             <Send className="w-4 h-4" />
@@ -331,23 +347,35 @@ export default function InvoicesPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-[#888] text-xs font-medium block mb-1.5">To (comma-separated)</label>
-                    <input
-                      value={sendModal.to}
-                      onChange={e => setSendModal(m => ({ ...m, to: e.target.value }))}
-                      placeholder="billing@client.ae"
-                      className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
-                    />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[#888] text-xs font-medium block mb-1.5">To (comma-separated)</label>
+                      <input
+                        value={sendModal.to}
+                        onChange={e => setSendModal(m => ({ ...m, to: e.target.value }))}
+                        placeholder="billing@client.ae"
+                        className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[#888] text-xs font-medium block mb-1.5">CC (optional)</label>
+                      <input
+                        value={sendModal.cc}
+                        onChange={e => setSendModal(m => ({ ...m, cc: e.target.value }))}
+                        placeholder="awab@..."
+                        className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="text-[#888] text-xs font-medium block mb-1.5">CC (optional)</label>
-                    <input
-                      value={sendModal.cc}
-                      onChange={e => setSendModal(m => ({ ...m, cc: e.target.value }))}
-                      placeholder="awab.sirelkhatim@gmail.com"
-                      className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50"
+                    <label className="text-[#888] text-xs font-medium block mb-1.5">Message body <span className="text-[#555]">(editable)</span></label>
+                    <textarea
+                      rows={8}
+                      value={sendModal.messageBody}
+                      onChange={e => setSendModal(m => ({ ...m, messageBody: e.target.value }))}
+                      className="w-full bg-[#0f0f0f] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:outline-none focus:border-green-500/50 resize-none font-mono text-xs leading-relaxed"
                     />
+                    <p className="text-[#444] text-xs mt-1">Invoice is appended automatically below this message.</p>
                   </div>
                   {sendModal.error && <p className="text-red-400 text-xs">{sendModal.error}</p>}
                   <div className="flex gap-3 pt-1">
