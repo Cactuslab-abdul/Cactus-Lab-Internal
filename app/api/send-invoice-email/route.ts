@@ -28,6 +28,7 @@ interface InvoiceData {
   vatRate: number;
   paymentDetails?: string;
   notes?: string;
+  terms?: string;
 }
 
 function buildInvoiceHtml(inv: InvoiceData): string {
@@ -103,35 +104,31 @@ function buildInvoiceHtml(inv: InvoiceData): string {
       </table>
 
       <!-- Totals + payment details -->
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div style="max-width:300px;">
-          ${inv.paymentDetails ? `
-          <div style="margin-bottom:14px;">
-            <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;">Payment Details</div>
-            <div style="font-size:12px;color:#6b7280;line-height:1.7;">${inv.paymentDetails.split("\n").join("<br>")}</div>
-          </div>` : ""}
-          ${inv.notes ? `
-          <div>
-            <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;">Notes</div>
-            <div style="font-size:12px;color:#6b7280;line-height:1.7;">${inv.notes}</div>
-          </div>` : ""}
-        </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:28px;">
         <div style="min-width:220px;">
           <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;">
             <span style="color:#6b7280;">Subtotal</span><span>${aed(subtotal)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;">
-            <span style="color:#6b7280;">VAT (${inv.vatRate}%)</span><span>${aed(vatAmt)}</span>
+            <span style="color:#6b7280;">Tax (${inv.vatRate}%)</span><span>${aed(vatAmt)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:700;padding:10px 0 5px;border-top:1.5px solid #111;margin-top:6px;">
-            <span>Total Due</span><span>${aed(total)}</span>
+            <span>Total</span><span>${aed(total)}</span>
           </div>
         </div>
       </div>
 
-      <!-- Footer -->
-      <div style="margin-top:48px;padding-top:18px;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af;">
-        Cactus Lab FZ LLC &nbsp;·&nbsp; RAKEZ, UAE &nbsp;·&nbsp; TRN: 105428032400001 &nbsp;·&nbsp; Thank you for your business.
+      <div style="border-top:1px solid #e5e7eb;padding-top:18px;">
+        ${inv.paymentDetails ? `
+        <div style="margin-bottom:14px;">
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Notes</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.7;">${inv.paymentDetails.split("\n").join("<br>")}</div>
+        </div>` : ""}
+        ${inv.terms ? `
+        <div>
+          <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Terms</div>
+          <div style="font-size:12px;color:#6b7280;">${inv.terms}</div>
+        </div>` : ""}
       </div>
     </div>
   `;

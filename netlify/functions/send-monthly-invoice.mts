@@ -22,7 +22,12 @@ const INVOICE_CONFIG = {
 };
 // ───────────────────────────────────────────────────────────────────────────
 
-const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTH_NAMES = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+function pad2(n: number) { return String(n).padStart(2, "0"); }
+// Starting sequence: June 2026 = 004 (001–003 were pre-system invoices)
+const SEQ_BASE_NUM = 4;
+const SEQ_BASE_YEAR = 2026;
+const SEQ_BASE_MONTH = 5; // June = index 5
 
 function aed(n: number) {
   return "AED " + Number(n).toLocaleString("en-AE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -36,8 +41,12 @@ function pad(n: number) { return String(n).padStart(2, "0"); }
 
 function buildInvoiceHtml(cfg: typeof INVOICE_CONFIG, invoiceNum: string, invoiceDate: Date, dueDate: Date): string {
   const subtotal = cfg.retainerAED;
-  const vatAmt = subtotal * cfg.vatRate / 100;
+  const vatAmt = 0; // 0% tax
   const total = subtotal + vatAmt;
+  const lastDay = new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, 0).getDate();
+  const m = invoiceDate.getMonth();
+  const y = invoiceDate.getFullYear();
+  const terms = `Period of invoice: ${pad2(1)}/${pad2(m + 1)}/${y} to ${pad2(lastDay)}/${pad2(m + 1)}/${y}`;
   const addressLines = cfg.billToAddress.split("\n").join("<br>");
 
   return `
@@ -97,26 +106,25 @@ function buildInvoiceHtml(cfg: typeof INVOICE_CONFIG, invoiceNum: string, invoic
         </tbody>
       </table>
 
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div style="max-width:300px;">
-          <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:5px;">Payment Details</div>
-          <div style="font-size:12px;color:#6b7280;line-height:1.7;">${cfg.paymentDetails.split("\n").join("<br>")}</div>
-        </div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:28px;">
         <div style="min-width:220px;">
           <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;">
             <span style="color:#6b7280;">Subtotal</span><span>${aed(subtotal)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:13px;padding:5px 0;">
-            <span style="color:#6b7280;">VAT (${cfg.vatRate}%)</span><span>${aed(vatAmt)}</span>
+            <span style="color:#6b7280;">Tax (0%)</span><span>${aed(vatAmt)}</span>
           </div>
           <div style="display:flex;justify-content:space-between;font-size:17px;font-weight:700;padding:10px 0 5px;border-top:1.5px solid #111;margin-top:6px;">
-            <span>Total Due</span><span>${aed(total)}</span>
+            <span>Total</span><span>${aed(total)}</span>
           </div>
         </div>
       </div>
 
-      <div style="margin-top:48px;padding-top:18px;border-top:1px solid #e5e7eb;text-align:center;font-size:11px;color:#9ca3af;">
-        Cactus Lab FZ LLC &nbsp;·&nbsp; RAKEZ, UAE &nbsp;·&nbsp; TRN: 105428032400001 &nbsp;·&nbsp; Thank you for your business.
+      <div style="border-top:1px solid #e5e7eb;padding-top:18px;">
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Notes</div>
+        <div style="font-size:12px;color:#6b7280;line-height:1.7;margin-bottom:14px;">${cfg.paymentDetails.split("\n").join("<br>")}</div>
+        <div style="font-size:12px;font-weight:700;margin-bottom:4px;">Terms</div>
+        <div style="font-size:12px;color:#6b7280;">${terms}</div>
       </div>
     </div>
   `;
@@ -198,7 +206,9 @@ export default async (): Promise<Response> => {
     ? process.env.INVOICE_CC_EMAILS.split(",").map(e => e.trim()).filter(Boolean)
     : [];
 
-  const invoiceNum = `${INVOICE_CONFIG.invoiceNumberPrefix}${MONTH_SHORT[month]}${String(year).slice(2)}001`;
+  const monthsElapsed = (year - SEQ_BASE_YEAR) * 12 + (month - SEQ_BASE_MONTH);
+  const seq = String(SEQ_BASE_NUM + monthsElapsed).padStart(3, "0");
+  const invoiceNum = `${INVOICE_CONFIG.invoiceNumberPrefix}/${MONTH_NAMES[month]}/${seq}`;
   const invoiceDate = new Date(year, month, 1);
   const dueDate = new Date(year, month, 8);
 

@@ -35,6 +35,17 @@ function getNextInvoiceNum(last: string | null): string | null {
   return null;
 }
 
+function getNextSeqNum(): string {
+  const last = localStorage.getItem("cactus-last-invoice-num");
+  if (!last) return "001";
+  const match = last.match(/(\d+)$/);
+  if (match) return String(parseInt(match[1], 10) + 1).padStart(3, "0");
+  return "001";
+}
+
+const MONTH_NAMES = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
+function pad2(n: number) { return String(n).padStart(2, "0"); }
+
 const DEFAULT_PAYMENT_DETAILS = `Account Holder: CACTUS LAB FZ LLC
 Bank: Mashreq Bank
 Account Number: 019102102223
@@ -52,6 +63,7 @@ interface InvoiceData {
   vatRate: number;
   paymentDetails: string;
   notes: string;
+  terms: string;
 }
 
 interface ReceiptData {
@@ -99,9 +111,10 @@ export default function InvoicesPage() {
     clientContact: "",
     clientAddress: "",
     clientTrn: "",
-    vatRate: 5,
+    vatRate: 0,
     paymentDetails: DEFAULT_PAYMENT_DETAILS,
     notes: "",
+    terms: "",
   });
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
 
@@ -185,10 +198,12 @@ export default function InvoicesPage() {
   const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   const quickGenerate = (client: QuickClient, month: number, year: number) => {
-    const initials = client.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
-    const invoiceNum = `${initials}${MONTH_SHORT[month]}${String(year).slice(2)}001`;
+    const seq = getNextSeqNum();
+    const invoiceNum = `PD/${MONTH_NAMES[month]}/${seq}`;
     const invoiceDate = new Date(year, month, 1);
     const dueDateObj = new Date(year, month, 8);
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const terms = `Period of invoice: ${pad2(1)}/${pad2(month + 1)}/${year} to ${pad2(lastDay)}/${pad2(month + 1)}/${year}`;
     const desc = client.invoiceDesc || "Social media management — short-form video package";
     const rate = client.retainerAED || 5500;
     const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: "" }];
@@ -201,9 +216,10 @@ export default function InvoicesPage() {
       clientAddress: client.billToAddress || "",
       clientTrn: client.billToTrn || "",
       items: newItems,
-      vatRate: 5,
+      vatRate: 0,
       paymentDetails: DEFAULT_PAYMENT_DETAILS,
       notes: "",
+      terms,
     };
     setForm({
       number: invoiceNum,
@@ -213,9 +229,10 @@ export default function InvoicesPage() {
       clientContact: data.clientContact,
       clientAddress: data.clientAddress,
       clientTrn: data.clientTrn,
-      vatRate: 5,
+      vatRate: 0,
       paymentDetails: DEFAULT_PAYMENT_DETAILS,
       notes: "",
+      terms,
     });
     setItems(newItems);
     setInvoiceData(data);
@@ -249,7 +266,7 @@ export default function InvoicesPage() {
       return;
     }
     localStorage.setItem("cactus-last-invoice-num", form.number);
-    setInvoiceData({ ...form, items, vatRate: form.vatRate });
+    setInvoiceData({ ...form, items, vatRate: form.vatRate, terms: form.terms });
     setView("invoice");
     window.scrollTo(0, 0);
   };
@@ -468,27 +485,13 @@ export default function InvoicesPage() {
             </tbody>
           </table>
 
-          {/* Bottom: payment details + totals */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <div style={{ maxWidth: 340 }}>
-              {invoiceData.paymentDetails && (
-                <div style={{ marginBottom: 16 }}>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Payment Details</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{invoiceData.paymentDetails.split("\n").map((l, i) => <span key={i}>{l}<br /></span>)}</div>
-                </div>
-              )}
-              {invoiceData.notes && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>Notes</div>
-                  <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{invoiceData.notes}</div>
-                </div>
-              )}
-            </div>
+          {/* Totals */}
+          <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 32 }}>
             <div style={{ minWidth: 220 }}>
               {[
                 { label: "Subtotal", val: aed(sub) },
-                { label: `VAT (${invoiceData.vatRate}%)`, val: aed(vatAmt) },
-                { label: "Total Due", val: aed(sub + vatAmt), bold: true },
+                { label: `Tax (${invoiceData.vatRate}%)`, val: aed(vatAmt) },
+                { label: "Total", val: aed(sub + vatAmt), bold: true },
               ].map(row => (
                 <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: row.bold ? 17 : 13, fontWeight: row.bold ? 700 : 400, padding: row.bold ? "10px 0 5px" : "5px 0", borderTop: row.bold ? "1.5px solid #111" : "none", marginTop: row.bold ? 6 : 0 }}>
                   <span style={{ color: row.bold ? "#111" : "#6b7280" }}>{row.label}</span>
@@ -498,8 +501,25 @@ export default function InvoicesPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: 60, paddingTop: 20, borderTop: "1px solid #e5e7eb", textAlign: "center", fontSize: 11, color: "#6b7280" }}>
-            Cactus Lab FZ LLC &nbsp;·&nbsp; RAKEZ, UAE &nbsp;·&nbsp; TRN: 105428032400001 &nbsp;·&nbsp; Thank you for your business.
+          {/* Notes + Terms */}
+          <div style={{ borderTop: "1px solid #e5e7eb", paddingTop: 20 }}>
+            {invoiceData.paymentDetails && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Notes</div>
+                <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{invoiceData.paymentDetails.split("\n").map((l, i) => <span key={i}>{l}<br /></span>)}</div>
+              </div>
+            )}
+            {invoiceData.notes && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{invoiceData.notes}</div>
+              </div>
+            )}
+            {invoiceData.terms && (
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Terms</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>{invoiceData.terms}</div>
+              </div>
+            )}
           </div>
         </div>
       </>
@@ -824,7 +844,7 @@ export default function InvoicesPage() {
                 </div>
                 <div className="flex justify-between text-sm items-center">
                   <span className="text-[#666] flex items-center gap-1">
-                    VAT (
+                    Tax (
                     <input
                       type="number"
                       value={form.vatRate}
@@ -848,7 +868,7 @@ export default function InvoicesPage() {
             <h2 className="text-[#555] text-xs uppercase tracking-wider font-semibold mb-4">Payment &amp; Notes</h2>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-[#555] text-xs block mb-1.5">Payment Details</label>
+                <label className="text-[#555] text-xs block mb-1.5">Payment Details (Notes)</label>
                 <textarea
                   rows={5}
                   value={form.paymentDetails}
@@ -857,13 +877,12 @@ export default function InvoicesPage() {
                 />
               </div>
               <div>
-                <label className="text-[#555] text-xs block mb-1.5">Notes (optional)</label>
-                <textarea
-                  rows={5}
-                  placeholder="e.g. Thank you for your business. Payment due within 7 days."
-                  value={form.notes}
-                  onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50 resize-none"
+                <label className="text-[#555] text-xs block mb-1.5">Terms (billing period)</label>
+                <input
+                  placeholder="e.g. Period of invoice: 01/06/2026 to 30/06/2026"
+                  value={form.terms}
+                  onChange={e => setForm(f => ({ ...f, terms: e.target.value }))}
+                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
                 />
               </div>
             </div>
