@@ -37,6 +37,7 @@ interface Client {
   billToTrn: string;
   invoiceEmails: string;
   invoiceDesc: string;
+  invoiceNotes: string;
 }
 
 const EMPTY_CLIENT: Omit<Client, "id"> = {
@@ -57,6 +58,7 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   billToTrn: "",
   invoiceEmails: "",
   invoiceDesc: "",
+  invoiceNotes: "",
 };
 
 const DEFAULT_CLIENTS: Client[] = [{
@@ -74,10 +76,11 @@ const DEFAULT_CLIENTS: Client[] = [{
   startDate: "2025-03-01",
   notes: "",
   billToCompany: "Arab Land Trading LLC",
-  billToAddress: "Al Quoz Industrial Area 1, Street 8, Warehouse 1-4\nP.O. Box 29893, Dubai, UAE",
+  billToAddress: "Al quoz industrial Area 1, street 8, warehouse 1-4\nP.O Box 29893, Dubai, UAE",
   billToTrn: "100544168600003",
   invoiceEmails: "",
-  invoiceDesc: "Short-form video package — social media management (18 videos/month, 15 stories and 8 LinkedIn posts)",
+  invoiceDesc: "Content Creation & Marketing Package",
+  invoiceNotes: "18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management",
 }];
 
 function getNicheColor(niche: string) {
@@ -259,8 +262,15 @@ function ClientCard({
             <label className="block">
               <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Description</span>
               <input value={form.invoiceDesc} onChange={e => setForm(f => ({ ...f, invoiceDesc: e.target.value }))}
-                placeholder="e.g. Short-form video package (18 videos/month)"
+                placeholder="e.g. Content Creation & Marketing Package"
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+            <label className="block col-span-2">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Notes <span className="text-[#555] normal-case">(one item per line, shown below description)</span></span>
+              <textarea value={form.invoiceNotes} onChange={e => setForm(f => ({ ...f, invoiceNotes: e.target.value }))}
+                rows={4}
+                placeholder={"18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management"}
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none font-mono leading-relaxed" />
             </label>
           </div>
         </div>
@@ -385,14 +395,19 @@ export default function ClientsPage() {
         if (Array.isArray(parsed) && parsed.length > 0 && "logoUrl" in parsed[0]) {
           const migrated = parsed.map((c: Client) => {
             const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
-            return {
-              ...c,
-              billToCompany: (c as Client).billToCompany ?? defaults?.billToCompany ?? "",
-              billToAddress: (c as Client).billToAddress ?? defaults?.billToAddress ?? "",
-              billToTrn: (c as Client).billToTrn ?? defaults?.billToTrn ?? "",
-              invoiceEmails: (c as Client).invoiceEmails ?? defaults?.invoiceEmails ?? "",
-              invoiceDesc: (c as Client).invoiceDesc ?? defaults?.invoiceDesc ?? "",
-            };
+            if (defaults) {
+              return {
+                ...c,
+                // Always sync billing/invoice fields from defaults to stay up to date
+                billToCompany: defaults.billToCompany,
+                billToAddress: defaults.billToAddress,
+                billToTrn: defaults.billToTrn,
+                invoiceDesc: defaults.invoiceDesc,
+                invoiceNotes: defaults.invoiceNotes,
+                invoiceEmails: c.invoiceEmails || defaults.invoiceEmails || "",
+              };
+            }
+            return { ...c, invoiceNotes: (c as Client).invoiceNotes ?? "" };
           });
           setClients(migrated);
           localStorage.setItem("cactus-clients", JSON.stringify(migrated));

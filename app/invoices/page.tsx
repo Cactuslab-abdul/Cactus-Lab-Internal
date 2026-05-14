@@ -89,6 +89,7 @@ interface QuickClient {
   retainerAED?: number;
   invoiceEmails?: string;
   invoiceDesc?: string;
+  invoiceNotes?: string;
 }
 
 export default function InvoicesPage() {
@@ -206,13 +207,13 @@ export default function InvoicesPage() {
     const terms = `Period of invoice: ${pad2(1)}/${pad2(month + 1)}/${year} to ${pad2(lastDay)}/${pad2(month + 1)}/${year}`;
     const desc = client.invoiceDesc || "Social media management — short-form video package";
     const rate = client.retainerAED || 5500;
-    const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: "" }];
+    const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: client.invoiceNotes || "" }];
     const data: InvoiceData = {
       number: invoiceNum,
       date: fmt(invoiceDate),
       due: fmt(dueDateObj),
       clientName: client.billToCompany || client.name,
-      clientContact: client.contactName || "",
+      clientContact: "",
       clientAddress: client.billToAddress || "",
       clientTrn: client.billToTrn || "",
       items: newItems,
@@ -226,7 +227,7 @@ export default function InvoicesPage() {
       date: fmt(invoiceDate),
       due: fmt(dueDateObj),
       clientName: data.clientName,
-      clientContact: data.clientContact,
+      clientContact: "",
       clientAddress: data.clientAddress,
       clientTrn: data.clientTrn,
       vatRate: 0,
@@ -452,7 +453,7 @@ export default function InvoicesPage() {
               <div style={{ fontSize: 13, fontWeight: 600 }}>{invoiceData.clientName}</div>
               {invoiceData.clientContact && <div style={{ fontSize: 13, color: "#6b7280" }}>{invoiceData.clientContact}</div>}
               {invoiceData.clientAddress && <div style={{ fontSize: 13, color: "#6b7280" }}>{invoiceData.clientAddress}</div>}
-              {invoiceData.clientTrn && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>TRN: {invoiceData.clientTrn}</div>}
+              {invoiceData.clientTrn && <div style={{ fontSize: 12, color: "#6b7280", marginTop: 4 }}>TRN number: {invoiceData.clientTrn}</div>}
             </div>
             <div style={{ textAlign: "right" }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6 }}>From</div>
@@ -475,7 +476,7 @@ export default function InvoicesPage() {
                 <tr key={item.id}>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb" }}>
                     {item.desc || "—"}
-                    {item.notes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.notes}</div>}
+                    {item.notes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.notes.split("\n").map((l, i) => <span key={i}>{l}{i < item.notes.split("\n").length - 1 && <br />}</span>)}</div>}
                   </td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>{item.qty}</td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{aed(item.rate)}</td>

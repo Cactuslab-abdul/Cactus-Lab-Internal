@@ -40,7 +40,7 @@ function buildInvoiceHtml(inv: InvoiceData): string {
     <tr>
       <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;">
         ${item.desc || "—"}
-        ${item.notes ? `<div style="font-size:11px;color:#9ca3af;margin-top:3px;">${item.notes}</div>` : ""}
+        ${item.notes ? `<div style="font-size:11px;color:#9ca3af;margin-top:3px;">${item.notes.split("\n").join("<br>")}</div>` : ""}
       </td>
       <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;text-align:right;">${item.qty}</td>
       <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;">${aed(item.rate)}</td>
@@ -82,7 +82,7 @@ function buildInvoiceHtml(inv: InvoiceData): string {
           <div style="font-size:13px;font-weight:600;">${inv.clientName}</div>
           ${inv.clientContact ? `<div style="font-size:13px;color:#6b7280;">${inv.clientContact}</div>` : ""}
           ${inv.clientAddress ? `<div style="font-size:12px;color:#6b7280;margin-top:2px;line-height:1.5;">${addressLines}</div>` : ""}
-          ${inv.clientTrn ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;font-weight:600;">TRN: ${inv.clientTrn}</div>` : ""}
+          ${inv.clientTrn ? `<div style="font-size:12px;color:#6b7280;margin-top:4px;font-weight:600;">TRN number: ${inv.clientTrn}</div>` : ""}
         </div>
         <div style="text-align:right;">
           <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">From</div>

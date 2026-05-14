@@ -10,12 +10,12 @@ const INVOICE_CONFIG = {
   clientName: "Pets Delight",
   contactName: "Marwan",               // used in "Dear Marwan,"
   billToCompany: "Arab Land Trading LLC",
-  billToAddress: "Al Quoz Industrial Area 1, Street 8, Warehouse 1-4\nP.O. Box 29893, Dubai, UAE",
+  billToAddress: "Al quoz industrial Area 1, street 8, warehouse 1-4\nP.O Box 29893, Dubai, UAE",
   billToTrn: "100544168600003",
   retainerAED: 5500,
-  vatRate: 5,
-  invoiceDesc: "Short-form video package — social media management",
-  invoiceNotes: "18 videos/month, 15 stories and 8 LinkedIn posts",
+  vatRate: 0,
+  invoiceDesc: "Content Creation & Marketing Package",
+  invoiceNotes: "18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management",
   invoiceNumberPrefix: "PD",
   paymentDetails: `Account Holder: CACTUS LAB FZ LLC\nBank: Mashreq Bank\nAccount Number: 019102102223\nIBAN: AE900330000019102102223`,
   previewRecipient: "awab.sirelkhatim@gmail.com",  // gets preview on the 24th
@@ -75,7 +75,7 @@ function buildInvoiceHtml(cfg: typeof INVOICE_CONFIG, invoiceNum: string, invoic
           <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Bill To</div>
           <div style="font-size:13px;font-weight:600;">${cfg.billToCompany}</div>
           <div style="font-size:12px;color:#6b7280;margin-top:2px;line-height:1.5;">${addressLines}</div>
-          <div style="font-size:12px;color:#6b7280;margin-top:4px;font-weight:600;">TRN: ${cfg.billToTrn}</div>
+          <div style="font-size:12px;color:#6b7280;margin-top:4px;font-weight:600;">TRN number: ${cfg.billToTrn}</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">From</div>
@@ -97,7 +97,7 @@ function buildInvoiceHtml(cfg: typeof INVOICE_CONFIG, invoiceNum: string, invoic
           <tr>
             <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;">
               ${cfg.invoiceDesc}
-              <div style="font-size:11px;color:#9ca3af;margin-top:3px;">${cfg.invoiceNotes}</div>
+              ${cfg.invoiceNotes ? `<div style="font-size:11px;color:#9ca3af;margin-top:3px;">${cfg.invoiceNotes.split("\n").join("<br>")}</div>` : ""}
             </td>
             <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;text-align:right;">1</td>
             <td style="padding:12px;font-size:13px;border-bottom:1px solid #e5e7eb;text-align:right;white-space:nowrap;">${aed(cfg.retainerAED)}</td>
