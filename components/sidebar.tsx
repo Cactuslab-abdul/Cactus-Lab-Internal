@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   TrendingUp,
@@ -15,6 +16,7 @@ import {
   MessageSquare,
   BarChart2,
   LogOut,
+  Upload,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -57,15 +59,91 @@ const navSections = [
   },
 ];
 
+interface UserProfile {
+  id: string;
+  email: string;
+  fullName: string;
+  avatarUrl: string | null;
+  initials: string;
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [avatarKey, setAvatarKey] = useState(0);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user: u } }) => {
+      if (!u) return;
+      const meta = u.user_metadata || {};
+      const fullName = meta.full_name || meta.name || u.email?.split("@")[0] || "User";
+      const initials = fullName
+        .split(" ")
+        .map((w: string) => w[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2);
+      setUser({
+        id: u.id,
+        email: u.email || "",
+        fullName,
+        avatarUrl: meta.avatar_url || null,
+        initials,
+      });
+    });
+  }, []);
 
   const handleLogout = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
     router.push("/login");
     router.refresh();
+  };
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    const ext = file.name.split(".").pop();
+    const path = `${user.id}/avatar.${ext}`;
+    const supabase = createClient();
+    setUploading(true);
+
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("avatars")
+        .getPublicUrl(path);
+
+      // Add cache-bust so img rerenders immediately
+      const urlWithBust = `${publicUrl}?t=${Date.now()}`;
+
+      await supabase.auth.updateUser({
+        data: { avatar_url: urlWithBust },
+      });
+
+      setUser(prev => prev ? { ...prev, avatarUrl: urlWithBust } : prev);
+      setAvatarKey(k => k + 1);
+    } catch (err) {
+      console.error("Avatar upload failed:", err);
+      alert("Upload failed. Make sure the 'avatars' bucket exists in Supabase Storage (set to public).");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   };
 
   return (
@@ -92,7 +170,6 @@ export default function Sidebar() {
               {section.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href;
-
                 return (
                   <Link
                     key={item.href}
@@ -116,20 +193,54 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Bottom section */}
+      {/* Bottom — user profile */}
       <div className="p-4 border-t border-[#1e1e1e] flex-shrink-0">
-        {/* Agency info */}
-        <div className="flex items-center gap-2 px-1">
-          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-xs font-bold text-white">
-            A
+        <div className="flex items-center gap-2.5 px-1">
+          {/* Avatar — click to upload */}
+          <button
+            onClick={handleAvatarClick}
+            disabled={uploading}
+            className="relative flex-shrink-0 group"
+            title="Click to update photo"
+          >
+            {user?.avatarUrl ? (
+              <img
+                key={avatarKey}
+                src={user.avatarUrl}
+                alt={user.fullName}
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-[#2a2a2a] group-hover:ring-green-500/50 transition-all"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center text-xs font-bold text-white ring-2 ring-[#2a2a2a] group-hover:ring-green-500/50 transition-all">
+                {user?.initials || "?"}
+              </div>
+            )}
+            {/* Hover overlay */}
+            <div className="absolute inset-0 rounded-full bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+              {uploading
+                ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" />
+                : <Upload className="w-3 h-3 text-white" />
+              }
+            </div>
+          </button>
+
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+
+          <div className="min-w-0 flex-1">
+            <p className="text-white text-xs font-medium truncate">{user?.fullName || "Loading..."}</p>
+            <p className="text-[#555] text-xs truncate">{user?.email || "Cactus Lab FZ LLC"}</p>
           </div>
-          <div>
-            <p className="text-white text-xs font-medium">Awab Sirelkhatim</p>
-            <p className="text-[#555] text-xs">Cactus Lab FZ LLC</p>
-          </div>
+
           <button
             onClick={handleLogout}
-            className="ml-auto text-[#555] hover:text-red-400 transition-colors"
+            className="ml-auto text-[#555] hover:text-red-400 transition-colors flex-shrink-0"
             title="Sign out"
           >
             <LogOut className="w-3.5 h-3.5" />
