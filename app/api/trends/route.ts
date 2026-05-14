@@ -64,7 +64,7 @@ Return your response as a valid JSON object with this exact structure:
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 4000,
-      system: SYSTEM_PROMPTS.trendScout.replace("[platform]", platform).replace("[niche]", niche),
+      system: SYSTEM_PROMPTS.trendScout,
       tools: [webSearchTool],
       messages: [{ role: "user", content: prompt }],
     });

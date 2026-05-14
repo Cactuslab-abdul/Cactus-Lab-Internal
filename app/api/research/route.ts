@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { anthropic, MODEL, SYSTEM_PROMPTS } from "@/lib/anthropic";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,25 +9,6 @@ export async function POST(req: NextRequest) {
     if (!businessName) {
       return NextResponse.json({ error: "Business name is required" }, { status: 400 });
     }
-
-    const systemPrompt = `You are Awab Sirelkhatim, founder of Cactus Lab — a UAE short-form video and social media agency based in Dubai. You're writing a personal outreach email to a UAE business owner.
-
-Key facts about you:
-- You run Cactus Lab FZ LLC (RAKEZ free zone)
-- You have an active client: Pets Delight (a pet products business in Dubai) — they've been with you since March 2026 and are getting consistent results with 15 videos/month
-- Your offer: 15 short-form Reels per month for AED 5,500 — full service (scripting, filming, editing, scheduling)
-- The client never has to appear on camera — you handle everything
-- You specialise in UAE businesses: perfume, watches, cars, recruitment, food, pets
-
-Your email tone:
-- Personal, conversational, direct — like Awab actually wrote it, not a marketing email
-- Specific about THEIR business (reference what you observed about them)
-- One specific reference to Pets Delight as proof (real client, real results in Dubai)
-- Short — max 150 words for the email body
-- No corporate fluff, no "I hope this email finds you well", no generic opener
-- End with a specific low-commitment CTA (e.g. "worth a quick 10-minute call?")
-
-You must return valid JSON only, no markdown fences.`;
 
     const userMessage = `Research this UAE business and generate personalised outreach:
 
@@ -73,18 +53,14 @@ Return JSON with this exact structure:
       },
     ];
 
-    // Use standard messages API — web_search as a declared tool
-    // Claude will reason about it; if web_search is not actually callable server-side,
-    // it will still generate high-quality research based on its knowledge
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-6",
+      model: MODEL,
       max_tokens: 2000,
-      system: systemPrompt,
+      system: SYSTEM_PROMPTS.outreachResearcher,
       messages: [{ role: "user", content: userMessage }],
       tools,
     });
 
-    // Extract text content from response
     let text = "";
     for (const block of response.content) {
       if (block.type === "text") {
@@ -93,10 +69,9 @@ Return JSON with this exact structure:
       }
     }
 
-    // If Claude tried to use web_search, handle tool_use blocks and get a follow-up
+    // If Claude tried to use web_search, provide stub results and follow up
     const toolUseBlocks = response.content.filter(b => b.type === "tool_use");
     if (toolUseBlocks.length > 0 && !text) {
-      // Claude wants to search — simulate tool results and ask for final answer
       const toolResults: Anthropic.Messages.ToolResultBlockParam[] = toolUseBlocks.map(b => {
         if (b.type === "tool_use") {
           return {
@@ -109,9 +84,9 @@ Return JSON with this exact structure:
       });
 
       const followUp = await anthropic.messages.create({
-        model: "claude-sonnet-4-6",
+        model: MODEL,
         max_tokens: 2000,
-        system: systemPrompt,
+        system: SYSTEM_PROMPTS.outreachResearcher,
         messages: [
           { role: "user", content: userMessage },
           { role: "assistant", content: response.content },
@@ -132,7 +107,6 @@ Return JSON with this exact structure:
       throw new Error("No text response from Claude");
     }
 
-    // Parse JSON — strip markdown fences if present
     const cleaned = text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
     const parsed = JSON.parse(cleaned);
 
