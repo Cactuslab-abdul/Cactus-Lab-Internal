@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     const ccList = cc ? [cc] : [];
 
     const { data, error } = await resend.emails.send({
-      from: "Cactus Lab Finance <finance@contact.cactuslab.ae>",
+      from: "Cactus Lab <hello@contact.cactuslab.ae>",
       replyTo: "hello@cactuslab.ae",
       to: [to],
       ...(ccList.length > 0 ? { cc: ccList } : {}),
