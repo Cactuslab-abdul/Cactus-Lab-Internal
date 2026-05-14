@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cactus Lab — Sign In</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { background: #0a0a0a; font-family: 'Inter', sans-serif; }
+    input:-webkit-autofill { -webkit-box-shadow: 0 0 0 30px #1a1a1a inset !important; -webkit-text-fill-color: #ffffff !important; }
+    .fade-in { animation: fadeIn 0.4s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+  <div class="w-full max-w-sm fade-in">
+    <!-- Logo -->
+    <div class="flex items-center gap-3 mb-10 justify-center">
+      <div class="w-9 h-9 bg-green-500 rounded-xl flex items-center justify-center text-base font-black text-black shadow-lg shadow-green-500/20">🌵</div>
+      <div>
+        <div class="text-lg font-bold text-white tracking-tight">Cactus Lab</div>
+        <div class="text-[11px] text-gray-500 uppercase tracking-widest">Agency OS</div>
+      </div>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-[#111] border border-[#2a2a2a] rounded-2xl p-8">
+      <h1 class="text-xl font-bold text-white mb-1">Welcome back</h1>
+      <p class="text-sm text-gray-500 mb-7">Sign in to your workspace</p>
+
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1.5">Email</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="you@cactuslab.co"
+            autocomplete="email"
+            required
+            class="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/30 transition-all"
+          />
+        </div>
+
+        <div>
+          <label class="text-xs text-gray-400 font-medium block mb-1.5">Password</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+            required
+            class="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500/30 transition-all"
+          />
+        </div>
+
+        <!-- Error -->
+        <div id="error" class="text-xs text-red-400 bg-red-900/20 border border-red-900/40 rounded-lg px-3 py-2 hidden"></div>
+
+        <button
+          id="loginBtn"
+          type="submit"
+          class="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 px-4 rounded-xl text-sm transition-all mt-2 shadow-lg shadow-green-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          Sign In
+        </button>
+      </form>
+    </div>
+
+    <p class="text-center text-xs text-gray-700 mt-6">
+      Only Cactus Lab team members can access this workspace.
+    </p>
+  </div>
+
+  <script>
+    // ─── Config ────────────────────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://tpxyegbeluspgashouzb.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_645xXVzICaRvM-d56_h7Yw_theYhwnk';
+    // ───────────────────────────────────────────────────────────────────────────
+
+    const { createClient } = window.supabase;
+    const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // If already logged in, go straight to dashboard
+    sb.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.href = '/dashboard.html';
+    });
+
+    const form = document.getElementById('loginForm');
+    const errorEl = document.getElementById('error');
+    const btn = document.getElementById('loginBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+
+      btn.textContent = 'Signing in…';
+      btn.disabled = true;
+      errorEl.classList.add('hidden');
+      errorEl.textContent = '';
+
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+
+      if (error) {
+        errorEl.textContent = error.message === 'Invalid login credentials'
+          ? 'Incorrect email or password.'
+          : error.message;
+        errorEl.classList.remove('hidden');
+        btn.textContent = 'Sign In';
+        btn.disabled = false;
+      } else {
+        window.location.href = '/dashboard.html';
+      }
+    });
+  </script>
+</body>
+</html>
