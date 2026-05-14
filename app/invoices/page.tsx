@@ -101,11 +101,32 @@ export default function InvoicesPage() {
   });
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
 
+  const [savedClients, setSavedClients] = useState<Array<{ id: string; name: string; contactName?: string; contactEmail?: string; contactWhatsApp?: string; retainerAED?: number }>>([]);
+
   useEffect(() => {
     const last = localStorage.getItem("cactus-last-invoice-num");
     const next = getNextInvoiceNum(last);
     if (next) setForm(f => ({ ...f, number: next }));
+
+    // Load clients for auto-fill
+    try {
+      const raw = localStorage.getItem("cactus-clients");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavedClients(parsed);
+      }
+    } catch {}
   }, []);
+
+  const handleClientAutofill = (clientId: string) => {
+    const client = savedClients.find(c => c.id === clientId);
+    if (!client) return;
+    const contact = [client.contactName, client.contactWhatsApp || client.contactEmail].filter(Boolean).join(" — ");
+    setForm(f => ({ ...f, clientName: client.name, clientContact: contact }));
+    if (client.retainerAED) {
+      setItems([{ id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: client.retainerAED }]);
+    }
+  };
 
   const subtotal = items.reduce((s, i) => s + i.qty * i.rate, 0);
   const vat = subtotal * form.vatRate / 100;
@@ -152,17 +173,23 @@ export default function InvoicesPage() {
   };
 
   const printStyle = `
+    @page { size: A4; margin: 0; }
     @media print {
+      html, body { width: 210mm; margin: 0; padding: 0; }
+      * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
       body * { visibility: hidden !important; }
       #print-invoice, #print-invoice * { visibility: visible !important; }
       #print-invoice {
-        position: fixed !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
+        position: absolute !important;
+        left: 0 !important; top: 0 !important;
+        width: 210mm !important;
+        padding: 18mm 20mm !important;
         margin: 0 !important;
-        padding: 40px !important;
+        max-width: none !important;
+        box-sizing: border-box !important;
+        background: white !important;
       }
+      .no-print { display: none !important; }
     }
   `;
 
@@ -421,6 +448,23 @@ export default function InvoicesPage() {
               ))}
             </div>
           </div>
+
+          {/* Client auto-fill */}
+          {savedClients.length > 0 && (
+            <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5 flex items-center gap-4">
+              <span className="text-[#555] text-xs uppercase tracking-wider font-semibold flex-shrink-0">Auto-fill Client</span>
+              <select
+                onChange={e => handleClientAutofill(e.target.value)}
+                defaultValue=""
+                className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white appearance-none focus:outline-none focus:border-green-500/50"
+              >
+                <option value="" disabled>— Select a client to auto-fill —</option>
+                {savedClients.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Bill to */}
           <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6">

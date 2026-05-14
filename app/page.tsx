@@ -17,6 +17,7 @@ import {
   X,
   Camera,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Client {
   id: string;
@@ -44,11 +45,12 @@ interface TeamMember {
   name: string;
   role: string;
   avatarUrl: string;
+  email: string;
 }
 
 const DEFAULT_TEAM: TeamMember[] = [
-  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "" },
-  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "" },
+  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "", email: "awab.sirelkhatim@gmail.com" },
+  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "", email: "abdul.ahmed.eg@gmail.com" },
 ];
 
 const quickActions = [
@@ -79,13 +81,15 @@ function TeamCard({
   member,
   onUpdate,
   onDelete,
+  isOnline,
 }: {
   member: TeamMember;
   onUpdate: (m: TeamMember) => void;
   onDelete: (id: string) => void;
+  isOnline?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: member.name, role: member.role, avatarUrl: member.avatarUrl });
+  const [form, setForm] = useState({ name: member.name, role: member.role, avatarUrl: member.avatarUrl, email: member.email });
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   const save = () => {
@@ -94,7 +98,7 @@ function TeamCard({
   };
 
   const cancel = () => {
-    setForm({ name: member.name, role: member.role, avatarUrl: member.avatarUrl });
+    setForm({ name: member.name, role: member.role, avatarUrl: member.avatarUrl, email: member.email });
     setEditing(false);
   };
 
@@ -146,6 +150,12 @@ function TeamCard({
             placeholder="Role"
             className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-xs text-white placeholder-[#444] focus:outline-none focus:border-green-500/50"
           />
+          <input
+            value={form.email}
+            onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            placeholder="Email (for online indicator)"
+            className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-xs text-white placeholder-[#444] focus:outline-none focus:border-green-500/50"
+          />
           <div className="flex gap-1.5">
             <button onClick={save} className="flex-1 bg-green-500 hover:bg-green-400 text-black text-xs font-semibold py-1.5 rounded-lg transition-colors">Save</button>
             <button onClick={cancel} className="flex-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-[#888] text-xs py-1.5 rounded-lg transition-colors">Cancel</button>
@@ -153,20 +163,26 @@ function TeamCard({
         </div>
       ) : (
         <>
-          {/* Avatar */}
-          <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#2a2a2a]">
-            {member.avatarUrl
-              ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-              : (
-                <div className="w-full h-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-base font-bold text-green-300">
-                  {initials(member.name)}
-                </div>
-              )
-            }
+          {/* Avatar with online indicator */}
+          <div className="relative">
+            <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#2a2a2a]">
+              {member.avatarUrl
+                ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                : (
+                  <div className="w-full h-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-base font-bold text-green-300">
+                    {initials(member.name)}
+                  </div>
+                )
+              }
+            </div>
+            {isOnline && (
+              <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 bg-green-400 rounded-full border-2 border-[#111] shadow-lg" />
+            )}
           </div>
           <div className="text-center">
             <p className="text-white text-sm font-semibold leading-tight">{member.name}</p>
             <p className="text-[#555] text-xs mt-0.5">{member.role}</p>
+            {isOnline && <p className="text-green-400 text-[10px] mt-0.5 font-medium">● Online</p>}
           </div>
         </>
       )}
@@ -181,7 +197,9 @@ export default function Dashboard() {
   const [stats, setStats] = useState<Stats>({});
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [addingMember, setAddingMember] = useState(false);
-  const [newMember, setNewMember] = useState({ name: "", role: "", avatarUrl: "" });
+  const [newMember, setNewMember] = useState({ name: "", role: "", avatarUrl: "", email: "" });
+  const [currentUserName, setCurrentUserName] = useState("there");
+  const [onlineEmails, setOnlineEmails] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try { const r = localStorage.getItem("cactus-clients"); if (r) setClients(JSON.parse(r)); } catch {}
@@ -189,12 +207,53 @@ export default function Dashboard() {
     try { const r = localStorage.getItem("cactus-stats"); if (r) setStats(JSON.parse(r)); } catch {}
     try {
       const r = localStorage.getItem("cactus-team");
-      if (r) setTeam(JSON.parse(r));
-      else {
+      if (r) {
+        const parsed = JSON.parse(r);
+        // Migrate: add email field if missing
+        const migrated = parsed.map((m: TeamMember, i: number) => ({
+          ...m,
+          email: m.email || DEFAULT_TEAM[i]?.email || "",
+        }));
+        setTeam(migrated);
+      } else {
         setTeam(DEFAULT_TEAM);
         localStorage.setItem("cactus-team", JSON.stringify(DEFAULT_TEAM));
       }
     } catch {}
+
+    // Load current user name + set up Realtime presence
+    const supabase = createClient();
+    let presenceChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) return;
+      const meta = user.user_metadata || {};
+      const name = meta.full_name || meta.name || user.email?.split("@")[0] || "there";
+      setCurrentUserName(name.split(" ")[0]);
+
+      presenceChannel = supabase.channel("os-presence");
+      presenceChannel
+        .on("presence", { event: "sync" }, () => {
+          if (!presenceChannel) return;
+          const state = presenceChannel.presenceState<{ email: string }>();
+          const emails = new Set<string>();
+          Object.values(state).forEach((presences) => {
+            presences.forEach((p) => { if (p.email) emails.add(p.email); });
+          });
+          setOnlineEmails(emails);
+        })
+        .subscribe(async (status) => {
+          if (status === "SUBSCRIBED") {
+            await presenceChannel?.track({ email: user.email });
+          }
+        });
+    });
+
+    return () => {
+      if (presenceChannel) {
+        supabase.removeChannel(presenceChannel);
+      }
+    };
   }, []);
 
   const saveTeam = (updated: TeamMember[]) => {
@@ -206,7 +265,7 @@ export default function Dashboard() {
     if (!newMember.name.trim()) return;
     const member: TeamMember = { id: Date.now().toString(), ...newMember };
     saveTeam([...team, member]);
-    setNewMember({ name: "", role: "", avatarUrl: "" });
+    setNewMember({ name: "", role: "", avatarUrl: "", email: "" });
     setAddingMember(false);
   };
 
@@ -244,27 +303,32 @@ export default function Dashboard() {
       {/* ── Header with team strip ─────────────────────────────────────── */}
       <div className="flex items-start justify-between gap-6">
         <div>
-          <h1 className="text-white text-2xl font-bold">{greeting}, Awab</h1>
+          <h1 className="text-white text-2xl font-bold">{greeting}, {currentUserName}</h1>
           <p className="text-[#666] mt-1">{todayLabel}</p>
         </div>
 
         {/* Team strip — right of header */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {team.map((member) => (
-            <div key={member.id} className="relative group/avatar">
-              <div className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#1e1e1e] hover:ring-green-500/40 transition-all cursor-default">
-                {member.avatarUrl
-                  ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
-                  : <div className="w-full h-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-xs font-bold text-green-300">{initials(member.name)}</div>
-                }
+          {team.map((member) => {
+            const online = !!(member.email && onlineEmails.has(member.email));
+            return (
+              <div key={member.id} className="relative group/avatar">
+                <div className={`w-9 h-9 rounded-full overflow-hidden ring-2 transition-all cursor-default ${online ? "ring-green-400" : "ring-[#1e1e1e] hover:ring-green-500/40"}`}>
+                  {member.avatarUrl
+                    ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+                    : <div className="w-full h-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-xs font-bold text-green-300">{initials(member.name)}</div>
+                  }
+                </div>
+                {online && <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-[#0f0f0f]" />}
+                {/* Tooltip */}
+                <div className="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-left whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
+                  <p className="text-white text-xs font-semibold">{member.name}</p>
+                  <p className="text-[#555] text-[11px]">{member.role}</p>
+                  {online && <p className="text-green-400 text-[10px] mt-0.5">● Online now</p>}
+                </div>
               </div>
-              {/* Tooltip */}
-              <div className="absolute top-full right-0 mt-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2 text-left whitespace-nowrap opacity-0 group-hover/avatar:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl">
-                <p className="text-white text-xs font-semibold">{member.name}</p>
-                <p className="text-[#555] text-[11px]">{member.role}</p>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <button
             onClick={() => setAddingMember(true)}
             className="w-9 h-9 rounded-full border border-dashed border-[#2a2a2a] hover:border-green-500/40 flex items-center justify-center text-[#444] hover:text-green-400 transition-all"
@@ -310,6 +374,12 @@ export default function Dashboard() {
               onChange={e => setNewMember(p => ({ ...p, role: e.target.value }))}
               placeholder="Role (e.g. Video Editor)"
               className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#444] focus:outline-none focus:border-green-500/50"
+            />
+            <input
+              value={newMember.email}
+              onChange={e => setNewMember(p => ({ ...p, email: e.target.value }))}
+              placeholder="Email (for online indicator)"
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-sm text-white placeholder-[#444] focus:outline-none focus:border-green-500/50"
               onKeyDown={e => e.key === "Enter" && handleAddMember()}
             />
             <button
@@ -348,6 +418,7 @@ export default function Dashboard() {
             <TeamCard
               key={member.id}
               member={member}
+              isOnline={!!(member.email && onlineEmails.has(member.email))}
               onUpdate={updated => saveTeam(team.map(m => m.id === updated.id ? updated : m))}
               onDelete={id => saveTeam(team.filter(m => m.id !== id))}
             />

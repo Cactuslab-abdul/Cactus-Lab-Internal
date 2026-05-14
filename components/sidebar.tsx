@@ -17,21 +17,21 @@ import {
   BarChart2,
   LogOut,
   Upload,
+  CreditCard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isAdminEmail } from "@/lib/useRole";
 import type { UserRole } from "@/lib/useRole";
 
 const allNavSections = [
   {
     label: "OVERVIEW",
-    adminOnly: false,
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
     ],
   },
   {
     label: "SALES",
-    adminOnly: true,
     items: [
       { href: "/pipeline", label: "Pipeline", icon: GitBranch, adminOnly: true },
       { href: "/outreach", label: "Outreach", icon: Mail, adminOnly: true },
@@ -40,7 +40,6 @@ const allNavSections = [
   },
   {
     label: "CLIENTS",
-    adminOnly: false,
     items: [
       { href: "/clients", label: "Clients", icon: Users, adminOnly: false },
       { href: "/growth", label: "Growth", icon: TrendingUp, adminOnly: true },
@@ -48,7 +47,6 @@ const allNavSections = [
   },
   {
     label: "CONTENT",
-    adminOnly: false,
     items: [
       { href: "/generate", label: "Generator", icon: Wand2, adminOnly: false },
       { href: "/analyze", label: "URL Analyzer", icon: Link2, adminOnly: false },
@@ -57,10 +55,10 @@ const allNavSections = [
   },
   {
     label: "FINANCE",
-    adminOnly: true,
     items: [
       { href: "/invoices", label: "Invoices", icon: Receipt, adminOnly: true },
       { href: "/proposals", label: "Proposals", icon: FileSignature, adminOnly: true },
+      { href: "/payments", label: "Payments", icon: CreditCard, adminOnly: true },
     ],
   },
 ];
@@ -80,6 +78,7 @@ interface UserProfile {
   fullName: string;
   avatarUrl: string | null;
   initials: string;
+  imgError: boolean;
 }
 
 export default function Sidebar() {
@@ -89,7 +88,7 @@ export default function Sidebar() {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [uploading, setUploading] = useState(false);
   const [avatarKey, setAvatarKey] = useState(0);
-  const [role, setRole] = useState<UserRole>("admin");
+  const [role, setRole] = useState<UserRole>("editor");
 
   useEffect(() => {
     const supabase = createClient();
@@ -109,8 +108,10 @@ export default function Sidebar() {
         fullName,
         avatarUrl: meta.avatar_url || null,
         initials,
+        imgError: false,
       });
-      setRole(meta.role === "editor" ? "editor" : "admin");
+      const admin = isAdminEmail(u.email) || meta.role === "admin";
+      setRole(admin ? "admin" : "editor");
     });
   }, []);
 
@@ -130,29 +131,28 @@ export default function Sidebar() {
     if (!file || !user) return;
 
     const ext = file.name.split(".").pop();
-    const path = `${user.id}/avatar.${ext}`;
+    const storagePath = `${user.id}/avatar.${ext}`;
     const supabase = createClient();
     setUploading(true);
 
     try {
       const { error: uploadError } = await supabase.storage
         .from("avatars")
-        .upload(path, file, { upsert: true, contentType: file.type });
+        .upload(storagePath, file, { upsert: true, contentType: file.type });
 
       if (uploadError) throw uploadError;
 
       const { data: { publicUrl } } = supabase.storage
         .from("avatars")
-        .getPublicUrl(path);
+        .getPublicUrl(storagePath);
 
-      // Add cache-bust so img rerenders immediately
       const urlWithBust = `${publicUrl}?t=${Date.now()}`;
 
       await supabase.auth.updateUser({
         data: { avatar_url: urlWithBust },
       });
 
-      setUser(prev => prev ? { ...prev, avatarUrl: urlWithBust } : prev);
+      setUser(prev => prev ? { ...prev, avatarUrl: urlWithBust, imgError: false } : prev);
       setAvatarKey(k => k + 1);
     } catch (err) {
       console.error("Avatar upload failed:", err);
@@ -162,6 +162,8 @@ export default function Sidebar() {
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
+
+  const showImg = user?.avatarUrl && !user?.imgError;
 
   return (
     <aside className="fixed left-0 top-0 h-full w-64 bg-[#111111] border-r border-[#1e1e1e] flex flex-col z-50 overflow-y-auto">
@@ -220,11 +222,12 @@ export default function Sidebar() {
             className="relative flex-shrink-0 group"
             title="Click to update photo"
           >
-            {user?.avatarUrl ? (
+            {showImg ? (
               <img
                 key={avatarKey}
-                src={user.avatarUrl}
-                alt={user.fullName}
+                src={user!.avatarUrl!}
+                alt={user!.fullName}
+                onError={() => setUser(prev => prev ? { ...prev, imgError: true } : prev)}
                 className="w-8 h-8 rounded-full object-cover ring-2 ring-[#2a2a2a] group-hover:ring-green-500/50 transition-all"
               />
             ) : (
@@ -252,7 +255,7 @@ export default function Sidebar() {
 
           <div className="min-w-0 flex-1">
             <p className="text-white text-xs font-medium truncate">{user?.fullName || "Loading..."}</p>
-            <p className="text-[#555] text-xs truncate">{user?.email || "Cactus Lab FZ LLC"}</p>
+            <p className="text-[#555] text-xs truncate">{user?.email || ""}</p>
           </div>
 
           <button

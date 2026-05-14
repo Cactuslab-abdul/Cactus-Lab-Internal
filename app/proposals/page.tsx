@@ -110,7 +110,6 @@ export default function ProposalsPage() {
     localStorage.setItem("cactus-last-proposal-num", form.number);
     setView("proposal");
     window.scrollTo(0, 0);
-    setTimeout(() => window.print(), 400);
   };
 
   if (view === "proposal") {
@@ -269,7 +268,27 @@ export default function ProposalsPage() {
           </div>
         </div>
 
-        <style>{`@media print { .no-print { display: none !important; } }`}</style>
+        <style>{`
+          @page { size: A4; margin: 0; }
+          @media print {
+            html, body { width: 210mm; margin: 0; padding: 0; }
+            * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+            body * { visibility: hidden !important; }
+            #print-proposal, #print-proposal * { visibility: visible !important; }
+            #print-proposal {
+              position: absolute !important;
+              left: 0 !important; top: 0 !important;
+              width: 210mm !important;
+              padding: 18mm 20mm !important;
+              margin: 0 !important;
+              max-width: none !important;
+              box-sizing: border-box !important;
+              background: white !important;
+              min-height: auto !important;
+            }
+            .no-print { display: none !important; }
+          }
+        `}</style>
       </>
     );
   }

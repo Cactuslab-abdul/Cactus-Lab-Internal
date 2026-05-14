@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic, MODEL, SYSTEM_PROMPTS } from "@/lib/anthropic";
-import fs from "fs";
-import path from "path";
 
 export const maxDuration = 60;
 
@@ -73,31 +71,6 @@ Make this genuinely viral. Think about scroll-stopping hooks, trending formats, 
     }
 
     const data = JSON.parse(jsonMatch[0]);
-
-    // Save to content.json
-    try {
-      const dataPath = path.join(process.cwd(), "data", "content.json");
-      const existing = JSON.parse(fs.readFileSync(dataPath, "utf-8"));
-      existing.savedContent = existing.savedContent || [];
-      existing.savedContent.push({
-        id: Date.now(),
-        createdAt: new Date().toISOString(),
-        niche,
-        goal,
-        format,
-        duration,
-        tone,
-        topic,
-        contentType: contentType || "educational",
-        ...data,
-      });
-      existing.stats = existing.stats || {};
-      existing.stats.contentGenerated = (existing.stats.contentGenerated || 0) + 1;
-      fs.writeFileSync(dataPath, JSON.stringify(existing, null, 2));
-    } catch (saveError) {
-      console.error("Failed to save content:", saveError);
-    }
-
     return NextResponse.json(data);
   } catch (error) {
     console.error("Generate API error:", error);
