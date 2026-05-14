@@ -30,6 +30,9 @@ export default function PaymentsPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [markingPaid, setMarkingPaid] = useState<string | null>(null);
   const [ccEmail, setCcEmail] = useState("");
+  const [defaultCc, setDefaultCc] = useState("");
+  const [editingCc, setEditingCc] = useState(false);
+  const [ccDraft, setCcDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [savedClients, setSavedClients] = useState<Array<{ id: string; name: string; contactEmail?: string; retainerAED?: number }>>([]);
 
@@ -55,6 +58,9 @@ export default function PaymentsPage() {
         if (Array.isArray(parsed)) setSavedClients(parsed);
       }
     } catch {}
+    const savedCc = localStorage.getItem("cactus-payments-cc") || "";
+    setDefaultCc(savedCc);
+    setCcEmail(savedCc);
   }, []);
 
   const save = (updated: Payment[]) => {
@@ -162,6 +168,50 @@ export default function PaymentsPage() {
           <Plus className="w-4 h-4" />
           Add Payment
         </button>
+      </div>
+
+      {/* Default CC email setting */}
+      <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-4 flex items-center gap-3">
+        <Mail className="w-4 h-4 text-[#555] flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <span className="text-[#555] text-xs uppercase tracking-wide font-medium mr-2">Default CC</span>
+          {editingCc ? (
+            <input
+              value={ccDraft}
+              onChange={e => setCcDraft(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === "Enter") {
+                  setDefaultCc(ccDraft);
+                  setCcEmail(ccDraft);
+                  localStorage.setItem("cactus-payments-cc", ccDraft);
+                  setEditingCc(false);
+                }
+                if (e.key === "Escape") { setCcDraft(defaultCc); setEditingCc(false); }
+              }}
+              placeholder="e.g. awab.sirelkhatim@gmail.com"
+              autoFocus
+              className="bg-[#1a1a1a] border border-green-500/40 rounded-lg px-3 py-1 text-sm text-white placeholder-[#444] focus:outline-none w-72"
+            />
+          ) : (
+            <span className="text-sm text-white">{defaultCc || <span className="text-[#444]">Not set</span>}</span>
+          )}
+        </div>
+        {editingCc ? (
+          <div className="flex gap-2 flex-shrink-0">
+            <button
+              onClick={() => { setDefaultCc(ccDraft); setCcEmail(ccDraft); localStorage.setItem("cactus-payments-cc", ccDraft); setEditingCc(false); }}
+              className="bg-green-500 hover:bg-green-400 text-black text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors"
+            >Save</button>
+            <button onClick={() => { setCcDraft(defaultCc); setEditingCc(false); }} className="text-[#555] hover:text-white text-xs px-2 py-1.5 rounded-lg transition-colors">Cancel</button>
+          </div>
+        ) : (
+          <button
+            onClick={() => { setCcDraft(defaultCc); setEditingCc(true); }}
+            className="text-[#555] hover:text-white text-xs border border-[#2a2a2a] hover:border-[#444] px-3 py-1.5 rounded-lg transition-all flex-shrink-0"
+          >
+            {defaultCc ? "Edit" : "Set CC"}
+          </button>
+        )}
       </div>
 
       {/* Stats */}
@@ -296,7 +346,7 @@ export default function PaymentsPage() {
               )}
 
               <div className="flex gap-3">
-                <button onClick={() => setMarkingPaid(null)}
+                <button onClick={() => { setMarkingPaid(null); setCcEmail(defaultCc); }}
                   className="flex-1 bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-white font-medium px-4 py-2.5 rounded-xl text-sm transition-colors">
                   Cancel
                 </button>
@@ -356,7 +406,7 @@ export default function PaymentsPage() {
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <button
-                          onClick={() => setMarkingPaid(payment.id)}
+                          onClick={() => { setMarkingPaid(payment.id); setCcEmail(defaultCc); }}
                           className="flex items-center gap-1.5 bg-green-500/10 hover:bg-green-500/20 border border-green-500/20 text-green-400 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors"
                         >
                           <CheckCircle2 className="w-3.5 h-3.5" />
