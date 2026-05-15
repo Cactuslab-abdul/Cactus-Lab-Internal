@@ -2,18 +2,19 @@
 
 ## Status
 _Last updated: 2026-05-15_
-Agency OS live at https://cactuslabos.netlify.app — cross-device sync fully working. All data (clients, leads, payments, invoices, growth, content packs) now syncs between PC and phone, and between Awab and Abdulrahman.
+Agency OS live at https://cactuslabos.netlify.app — cross-device sync fully working. Profile photos show in sidebar for both users. Outreach tool updated with instructions field and email leads. Humanized email prompt built but NOT yet deployed (needs Netlify token).
 Shared git repo fully synced — both Awab and AbouZaid connected. Auto-sync runs every 5 min on Awab's machine.
 
 ## Active Projects
-- **Agency OS** — live + cross-device sync complete. Data syncs via Supabase Storage `app-data` bucket.
+- **Agency OS** — live. Sync, avatars, outreach improvements all in. Humanized email prompt pending deploy.
 - **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min, wrapup pushes session notes automatically
 
 ## This Week
-- Migrated all localStorage → Supabase Storage for cross-device data sync
-- Created `/api/shared-data` API route (auth-protected, service role key server-side only)
-- Created `lib/sharedStorage.ts` — write-through cache (localStorage + Supabase) with server-first reads
-- Updated 11 pages × 11 storage keys — zero breaking changes, all existing data auto-migrates on first load
+- Batch API (`/api/shared-data-batch`) — 1 round-trip instead of 11 individual calls on dashboard load
+- Profile photos in sidebar for both users — two-way sync via cactus-team storage
+- Outreach: instructions textarea, email leads feature, humanized system prompt (no em dashes, no AI phrases)
+- Login page cactus logo updated
+- Awab/Abdul sync meeting — meeting notes generated
 
 ## Decisions Log
 | Date | Decision | Made by |
