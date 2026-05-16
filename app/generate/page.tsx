@@ -21,7 +21,7 @@ import {
   Library,
 } from "lucide-react";
 
-const niches = [
+const STATIC_NICHES = [
   "Pets Delight (Pet Products)",
   "Perfume & Watches",
   "Cars & Automotive",
@@ -266,7 +266,10 @@ function LibraryView() {
 function GeneratePageInner() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<"generate" | "library">("generate");
-  const [niche, setNiche] = useState(niches[0]);
+  const [nicheOptions, setNicheOptions] = useState<{ value: string; label: string; isClient: boolean }[]>(
+    STATIC_NICHES.map((n) => ({ value: n, label: n, isClient: false }))
+  );
+  const [niche, setNiche] = useState(STATIC_NICHES[0]);
   const [goal, setGoal] = useState(goals[0]);
   const [format, setFormat] = useState(formats[0]);
   const [duration, setDuration] = useState(durations[1]);
@@ -278,6 +281,7 @@ function GeneratePageInner() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [autoSavedMsg, setAutoSavedMsg] = useState(false);
+  const [alreadySaved, setAlreadySaved] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
 
   const isLinkedIn = format === "LinkedIn Post";
@@ -292,6 +296,34 @@ function GeneratePageInner() {
     "Finalizing your content pack...",
   ];
 
+  // Load clients from localStorage and build dynamic niche options
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("cactus-clients");
+      if (raw) {
+        const clients: { name: string; niche?: string }[] = JSON.parse(raw);
+        if (Array.isArray(clients) && clients.length > 0) {
+          const clientOptions = clients.map((c) => ({
+            value: `${c.name}${c.niche ? ` (${c.niche})` : ""}`,
+            label: `${c.name}${c.niche ? ` (${c.niche})` : ""}`,
+            isClient: true,
+          }));
+          const staticOptions = STATIC_NICHES.map((n) => ({ value: n, label: n, isClient: false }));
+          // Deduplicate: remove static entries that duplicate a client name
+          const clientNames = new Set(clients.map((c) => c.name.toLowerCase()));
+          const filteredStatic = staticOptions.filter(
+            (s) => !clientNames.has(s.value.split(" (")[0].toLowerCase())
+          );
+          setNicheOptions([...clientOptions, ...filteredStatic]);
+          // Default niche to first client option
+          setNiche(clientOptions[0].value);
+          return;
+        }
+      }
+    } catch {}
+    setNicheOptions(STATIC_NICHES.map((n) => ({ value: n, label: n, isClient: false })));
+  }, []);
+
   useEffect(() => {
     const topicParam = searchParams.get("topic");
     const nicheParam = searchParams.get("niche");
@@ -299,7 +331,8 @@ function GeneratePageInner() {
 
     if (topicParam) setTopic(topicParam);
     if (nicheParam) {
-      const matchedNiche = niches.find((n) =>
+      const allValues = nicheOptions.map((o) => o.value);
+      const matchedNiche = allValues.find((n) =>
         n.toLowerCase().includes(nicheParam.toLowerCase().split(" ")[0])
       );
       if (matchedNiche) setNiche(matchedNiche);
@@ -310,7 +343,7 @@ function GeneratePageInner() {
       );
       if (matchedFormat) setFormat(matchedFormat);
     }
-  }, [searchParams]);
+  }, [searchParams, nicheOptions]);
 
   // Reset content type to a valid option when format changes
   useEffect(() => {
@@ -345,6 +378,7 @@ function GeneratePageInner() {
     setContent(null);
     setSaved(false);
     setAutoSavedMsg(false);
+    setAlreadySaved(false);
 
     let msgIndex = 0;
     setLoadingMessage(loadingMessages[0]);
@@ -372,6 +406,7 @@ function GeneratePageInner() {
 
       // Auto-save to library
       saveToLibrary(result);
+      setAlreadySaved(true);
       setAutoSavedMsg(true);
       setTimeout(() => setAutoSavedMsg(false), 3000);
 
@@ -387,8 +422,9 @@ function GeneratePageInner() {
   };
 
   const handleSave = () => {
-    if (!content) return;
+    if (!content || alreadySaved) return;
     saveToLibrary(content);
+    setAlreadySaved(true);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
   };
@@ -445,7 +481,18 @@ function GeneratePageInner() {
                   onChange={(e) => setNiche(e.target.value)}
                   className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white text-sm focus:border-green-500/50 transition-colors appearance-none cursor-pointer"
                 >
-                  {niches.map((n) => <option key={n} value={n}>{n}</option>)}
+                  {nicheOptions.some((o) => o.isClient) && (
+                    <optgroup label="Your Clients">
+                      {nicheOptions.filter((o) => o.isClient).map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </optgroup>
+                  )}
+                  <optgroup label="Generic Niches">
+                    {nicheOptions.filter((o) => !o.isClient).map((o) => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
 

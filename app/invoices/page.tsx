@@ -9,6 +9,8 @@ interface LineItem {
   qty: number;
   rate: number;
   notes: string;
+  type?: "retainer" | "one-time" | "addon";
+  period?: string;
 }
 
 function fmt(d: Date) {
@@ -64,8 +66,10 @@ interface InvoiceData {
   clientTrn: string;
   items: LineItem[];
   vatRate: number;
+  discount: number;
   paymentDetails: string;
   notes: string;
+  paymentTerms: string;
   terms: string;
 }
 
@@ -97,6 +101,7 @@ interface QuickClient {
   invoicePrefix?: string;
   invoiceDesc?: string;
   invoiceNotes?: string;
+  logoUrl?: string;
 }
 
 function isClientOnDiscount(client: QuickClient): boolean {
@@ -121,7 +126,7 @@ export default function InvoicesPage() {
 
   // Invoice state
   const [items, setItems] = useState<LineItem[]>([
-    { id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: 5500, notes: "" },
+    { id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: 0, notes: "", type: "retainer", period: "" },
   ]);
   const [form, setForm] = useState({
     number: "",
@@ -132,8 +137,10 @@ export default function InvoicesPage() {
     clientAddress: "",
     clientTrn: "",
     vatRate: 0,
+    discount: 0,
     paymentDetails: DEFAULT_PAYMENT_DETAILS,
     notes: "",
+    paymentTerms: "",
     terms: "",
   });
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
@@ -195,17 +202,18 @@ export default function InvoicesPage() {
     }));
     if (client.retainerAED) {
       const desc = client.invoiceDesc || "Social media management — short-form video package";
-      setItems([{ id: 1, desc, qty: 1, rate: clientEffectiveRate(client), notes: "" }]);
+      setItems([{ id: 1, desc, qty: 1, rate: clientEffectiveRate(client), notes: "", type: "retainer", period: "" }]);
     }
     setCurrentClient(client);
   };
 
   const subtotal = items.reduce((s, i) => s + i.qty * i.rate, 0);
-  const vat = subtotal * form.vatRate / 100;
-  const total = subtotal + vat;
+  const discountedSubtotal = subtotal - form.discount;
+  const vat = discountedSubtotal * form.vatRate / 100;
+  const total = discountedSubtotal + vat;
 
   const addItem = () => {
-    setItems(prev => [...prev, { id: Date.now(), desc: "", qty: 1, rate: 0, notes: "" }]);
+    setItems(prev => [...prev, { id: Date.now(), desc: "", qty: 1, rate: 0, notes: "", type: "retainer", period: "" }]);
   };
 
   const removeItem = (id: number) => {
@@ -227,8 +235,8 @@ export default function InvoicesPage() {
     const lastDay = new Date(year, month + 1, 0).getDate();
     const terms = `Period of invoice: ${pad2(1)}/${pad2(month + 1)}/${year} to ${pad2(lastDay)}/${pad2(month + 1)}/${year}`;
     const desc = client.invoiceDesc || "Social media management — short-form video package";
-    const rate = clientEffectiveRate(client) || 5500;
-    const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: client.invoiceNotes || "" }];
+    const rate = clientEffectiveRate(client) || 0;
+    const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: client.invoiceNotes || "", type: "retainer", period: "" }];
     const data: InvoiceData = {
       number: invoiceNum,
       date: fmt(invoiceDate),
@@ -239,8 +247,10 @@ export default function InvoicesPage() {
       clientTrn: client.billToTrn || "",
       items: newItems,
       vatRate: 0,
+      discount: 0,
       paymentDetails: DEFAULT_PAYMENT_DETAILS,
       notes: "",
+      paymentTerms: "",
       terms,
     };
     setForm({
@@ -252,8 +262,10 @@ export default function InvoicesPage() {
       clientAddress: data.clientAddress,
       clientTrn: data.clientTrn,
       vatRate: 0,
+      discount: 0,
       paymentDetails: DEFAULT_PAYMENT_DETAILS,
       notes: "",
+      paymentTerms: "",
       terms,
     });
     setItems(newItems);
@@ -288,13 +300,13 @@ export default function InvoicesPage() {
       return;
     }
     localStorage.setItem("cactus-last-invoice-num", form.number);
-    setInvoiceData({ ...form, items, vatRate: form.vatRate, terms: form.terms });
+    setInvoiceData({ ...form, items, vatRate: form.vatRate, discount: form.discount, paymentTerms: form.paymentTerms, terms: form.terms });
     setView("invoice");
     window.scrollTo(0, 0);
   };
 
   const generateReceipt = () => {
-    if (!form.clientName || !receiptForm.date || !receiptForm.amountPaid) {
+    if (!receiptForm.clientName || !receiptForm.date || !receiptForm.amountPaid) {
       alert("Please fill in Client Name, Date, and Amount Paid.");
       return;
     }
@@ -335,7 +347,9 @@ export default function InvoicesPage() {
   // ── Invoice print view ────────────────────────────────────────────────────
   if (view === "invoice" && invoiceData) {
     const sub = invoiceData.items.reduce((s, i) => s + i.qty * i.rate, 0);
-    const vatAmt = sub * invoiceData.vatRate / 100;
+    const discAmt = invoiceData.discount || 0;
+    const discountedSub = sub - discAmt;
+    const vatAmt = discountedSub * invoiceData.vatRate / 100;
 
     return (
       <>
@@ -497,8 +511,16 @@ export default function InvoicesPage() {
               {invoiceData.items.map(item => (
                 <tr key={item.id}>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb" }}>
-                    {item.desc || "—"}
-                    {item.notes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.notes.split("\n").map((l, i) => <span key={i}>{l}{i < item.notes.split("\n").length - 1 && <br />}</span>)}</div>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                      <span>{item.desc || "—"}</span>
+                      {item.type && item.type !== "retainer" && (
+                        <span style={{ fontSize: 10, color: "#6b7280", background: "#f3f4f6", border: "1px solid #e5e7eb", borderRadius: 4, padding: "1px 6px", fontWeight: 500, whiteSpace: "nowrap" }}>
+                          {item.type === "one-time" ? "One-time" : "Add-on"}
+                        </span>
+                      )}
+                    </div>
+                    {item.period && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.period}</div>}
+                    {item.notes && <div style={{ fontSize: 11, color: "#9ca3af", marginTop: 3 }}>{item.notes.split("\n").map((l, idx) => <span key={idx}>{l}{idx < item.notes.split("\n").length - 1 && <br />}</span>)}</div>}
                   </td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right" }}>{item.qty}</td>
                   <td style={{ padding: "12px 12px", fontSize: 13, borderBottom: "1px solid #e5e7eb", textAlign: "right", whiteSpace: "nowrap" }}>{aed(item.rate)}</td>
@@ -511,16 +533,24 @@ export default function InvoicesPage() {
           {/* Totals */}
           <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 32 }}>
             <div style={{ minWidth: 220 }}>
-              {[
-                { label: "Subtotal", val: aed(sub) },
-                { label: `Tax (${invoiceData.vatRate}%)`, val: aed(vatAmt) },
-                { label: "Total", val: aed(sub + vatAmt), bold: true },
-              ].map(row => (
-                <div key={row.label} style={{ display: "flex", justifyContent: "space-between", fontSize: row.bold ? 17 : 13, fontWeight: row.bold ? 700 : 400, padding: row.bold ? "10px 0 5px" : "5px 0", borderTop: row.bold ? "1.5px solid #111" : "none", marginTop: row.bold ? 6 : 0 }}>
-                  <span style={{ color: row.bold ? "#111" : "#6b7280" }}>{row.label}</span>
-                  <span>{row.val}</span>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
+                <span style={{ color: "#6b7280" }}>Subtotal</span>
+                <span>{aed(sub)}</span>
+              </div>
+              {discAmt > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
+                  <span style={{ color: "#6b7280" }}>Discount</span>
+                  <span style={{ color: "#dc2626" }}>-{aed(discAmt)}</span>
                 </div>
-              ))}
+              )}
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
+                <span style={{ color: "#6b7280" }}>Tax ({invoiceData.vatRate}%)</span>
+                <span>{aed(vatAmt)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, fontWeight: 700, padding: "10px 0 5px", borderTop: "1.5px solid #111", marginTop: 6 }}>
+                <span style={{ color: "#111" }}>Total</span>
+                <span>{aed(discountedSub + vatAmt)}</span>
+              </div>
             </div>
           </div>
 
@@ -535,6 +565,12 @@ export default function InvoicesPage() {
             {invoiceData.notes && (
               <div style={{ marginBottom: 14 }}>
                 <div style={{ fontSize: 12, color: "#6b7280", lineHeight: 1.7 }}>{invoiceData.notes}</div>
+              </div>
+            )}
+            {invoiceData.paymentTerms && (
+              <div style={{ marginBottom: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 4 }}>Payment Terms</div>
+                <div style={{ fontSize: 12, color: "#6b7280" }}>{invoiceData.paymentTerms}</div>
               </div>
             )}
             {invoiceData.terms && (
@@ -678,9 +714,13 @@ export default function InvoicesPage() {
               return (
                 <div key={client.id} className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-sm font-bold text-green-400 flex-shrink-0">
-                      {client.name.charAt(0).toUpperCase()}
-                    </div>
+                    {client.logoUrl ? (
+                      <img src={client.logoUrl} alt={client.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-sm font-bold text-green-400 flex-shrink-0">
+                        {client.name.charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <div>
                       <p className="text-white font-semibold text-sm">{client.name}</p>
                       {client.billToCompany && client.billToCompany !== client.name && (
@@ -852,11 +892,34 @@ export default function InvoicesPage() {
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
+                  {/* Type segmented control */}
+                  <div className="flex gap-1">
+                    {(["retainer", "one-time", "addon"] as const).map(t => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => updateItem(item.id, "type", t)}
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${
+                          (item.type ?? "retainer") === t
+                            ? "bg-green-500/15 border border-green-500/30 text-green-400"
+                            : "bg-[#161616] border border-[#222] text-[#555] hover:text-[#888]"
+                        }`}
+                      >
+                        {t === "retainer" ? "Retainer" : t === "one-time" ? "One-time" : "Add-on"}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     className="w-full bg-[#161616] border border-[#222] rounded-lg px-3 py-1.5 text-xs text-[#777] placeholder-[#444] focus:outline-none focus:border-green-500/30"
                     placeholder="Notes (e.g. 18 videos/month, 15 stories and 8 LinkedIn posts)"
                     value={item.notes}
                     onChange={e => updateItem(item.id, "notes", e.target.value)}
+                  />
+                  <input
+                    className="w-full bg-[#161616] border border-[#222] rounded-lg px-3 py-1.5 text-xs text-[#777] placeholder-[#444] focus:outline-none focus:border-green-500/30"
+                    placeholder="Period (optional) — e.g. 18–31 May 2026"
+                    value={item.period ?? ""}
+                    onChange={e => updateItem(item.id, "period", e.target.value)}
                   />
                 </div>
               ))}
@@ -875,6 +938,18 @@ export default function InvoicesPage() {
                 <div className="flex justify-between text-sm">
                   <span className="text-[#666]">Subtotal</span>
                   <span className="text-white">{aed(subtotal)}</span>
+                </div>
+                <div className="flex justify-between text-sm items-center">
+                  <span className="text-[#666] flex items-center gap-1">
+                    Discount (AED)
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    value={form.discount}
+                    onChange={e => setForm(f => ({ ...f, discount: parseFloat(e.target.value) || 0 }))}
+                    className="w-24 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-1.5 py-0.5 text-xs text-white text-right focus:outline-none focus:border-green-500/50"
+                  />
                 </div>
                 <div className="flex justify-between text-sm items-center">
                   <span className="text-[#666] flex items-center gap-1">
@@ -910,14 +985,25 @@ export default function InvoicesPage() {
                   className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50 resize-none"
                 />
               </div>
-              <div>
-                <label className="text-[#555] text-xs block mb-1.5">Terms (billing period)</label>
-                <input
-                  placeholder="e.g. Period of invoice: 01/06/2026 to 30/06/2026"
-                  value={form.terms}
-                  onChange={e => setForm(f => ({ ...f, terms: e.target.value }))}
-                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
-                />
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[#555] text-xs block mb-1.5">Payment Terms (optional)</label>
+                  <input
+                    placeholder="e.g. 50% on signing, balance on delivery"
+                    value={form.paymentTerms}
+                    onChange={e => setForm(f => ({ ...f, paymentTerms: e.target.value }))}
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
+                <div>
+                  <label className="text-[#555] text-xs block mb-1.5">Terms (billing period)</label>
+                  <input
+                    placeholder="e.g. Period of invoice: 01/06/2026 to 30/06/2026"
+                    value={form.terms}
+                    onChange={e => setForm(f => ({ ...f, terms: e.target.value }))}
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
+                  />
+                </div>
               </div>
             </div>
           </div>

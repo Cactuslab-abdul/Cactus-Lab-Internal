@@ -34,20 +34,38 @@ interface Lead {
 }
 
 const DEFAULT_LEADS: Lead[] = [
-  { id: 1, name: "Pets Delight", niche: "Pet", platform: "Referral", stage: "Closed", note: "First client — use as social proof", date: "2025-05-01", followup: "" },
-  { id: 2, name: "Al Fares Perfumes", niche: "Perfume", platform: "Walk-in", stage: "Proposal", note: "Owner interested, follow up Tue", date: "2025-05-04", followup: "" },
-  { id: 3, name: "Deira Auto Parts", niche: "Car", platform: "Instagram DM", stage: "Replied", note: "Asked for pricing", date: "2025-05-05", followup: "" },
-  { id: 4, name: "Gulf Recruitment Co", niche: "Recruitment", platform: "Instagram DM", stage: "Messaged", note: "", date: "2025-05-06", followup: "" },
-  { id: 5, name: "Spice House Sharjah", niche: "Spice", platform: "Walk-in", stage: "Prospecting", note: "Good footfall, weak IG", date: "2025-05-06", followup: "" },
+  { id: 1, name: "Al Fares Perfumes", niche: "Perfume", platform: "Walk-in", stage: "Proposal", note: "Owner interested, follow up Tue", date: "2026-05-01", followup: "" },
+  { id: 2, name: "Deira Auto Parts", niche: "Car", platform: "Instagram DM", stage: "Replied", note: "Asked for pricing", date: "2026-05-01", followup: "" },
+  { id: 3, name: "Gulf Recruitment Co", niche: "Recruitment", platform: "Instagram DM", stage: "Messaged", note: "", date: "2026-05-01", followup: "" },
+  { id: 4, name: "Spice House Sharjah", niche: "Spice", platform: "Walk-in", stage: "Prospecting", note: "Good footfall, weak IG", date: "2026-05-01", followup: "" },
 ];
 
 function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+interface Client {
+  id: string;
+  name: string;
+  retainerAED?: number;
+  discountedRate?: number;
+  fullRateDate?: string;
+  monthlyRetainer?: number;
+}
+
+function clientEffectiveRate(c: Client): number {
+  if (
+    c.discountedRate && c.discountedRate > 0 &&
+    c.fullRateDate &&
+    new Date() < new Date(c.fullRateDate + "T00:00:00")
+  ) return c.discountedRate;
+  return c.retainerAED ?? c.monthlyRetainer ?? 0;
+}
+
 export default function PipelinePage() {
   const router = useRouter();
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [clients, setClients] = useState<Client[]>([]);
   const [nextId, setNextId] = useState(6);
   const [activeTab, setActiveTab] = useState("All");
   const [form, setForm] = useState({ name: "", niche: "", platform: "", followup: "", note: "" });
@@ -55,6 +73,7 @@ export default function PipelinePage() {
   useEffect(() => {
     const raw = localStorage.getItem("cactus-leads");
     const rawId = localStorage.getItem("cactus-leads-nextid");
+    const rawClients = localStorage.getItem("cactus-clients");
     if (raw) {
       try { setLeads(JSON.parse(raw)); } catch {}
     } else {
@@ -62,6 +81,9 @@ export default function PipelinePage() {
       localStorage.setItem("cactus-leads", JSON.stringify(DEFAULT_LEADS));
     }
     if (rawId) setNextId(parseInt(rawId, 10));
+    if (rawClients) {
+      try { setClients(JSON.parse(rawClients)); } catch {}
+    }
   }, []);
 
   const save = useCallback((updatedLeads: Lead[], updatedNextId?: number) => {
@@ -154,7 +176,7 @@ export default function PipelinePage() {
   // Metrics
   const closed = leads.filter(l => l.stage === "Closed").length;
   const active = leads.filter(l => !["Closed", "Lost"].includes(l.stage)).length;
-  const mrr = closed * 5500;
+  const mrr = clients.reduce((sum, c) => sum + clientEffectiveRate(c), 0);
   const followupsDue = leads.filter(l => l.followup && l.followup <= today && !["Closed", "Lost"].includes(l.stage)).length;
 
   // Filtered

@@ -456,22 +456,25 @@ export default function ClientsPage() {
       const raw = localStorage.getItem("cactus-clients");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0 && "logoUrl" in parsed[0]) {
+        if (Array.isArray(parsed) && parsed.length > 0) {
           const migrated = parsed.map((c: Client) => {
             const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
             if (defaults) {
+              // Only add fields that are missing from old saved data — never overwrite user edits
               return {
                 ...c,
-                // Always sync billing/invoice fields from defaults to stay up to date
-                billToCompany: defaults.billToCompany,
-                billToAddress: defaults.billToAddress,
-                billToTrn: defaults.billToTrn,
-                invoiceDesc: defaults.invoiceDesc,
-                invoiceNotes: defaults.invoiceNotes,
-                invoiceEmails: c.invoiceEmails || defaults.invoiceEmails || "",
+                invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
+                discountedRate: c.discountedRate ?? defaults.discountedRate,
+                fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
               };
             }
-            return { ...c, invoiceNotes: (c as Client).invoiceNotes ?? "" };
+            return {
+              ...c,
+              invoicePrefix: c.invoicePrefix ?? "",
+              discountedRate: c.discountedRate ?? 0,
+              fullRateDate: c.fullRateDate ?? "",
+              invoiceNotes: c.invoiceNotes ?? "",
+            };
           });
           setClients(migrated);
           localStorage.setItem("cactus-clients", JSON.stringify(migrated));
@@ -601,6 +604,12 @@ export default function ClientsPage() {
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
               </label>
               <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Contact Email</span>
+                <input value={newClient.contactEmail} onChange={e => setNewClient(p => ({ ...p, contactEmail: e.target.value }))}
+                  placeholder="contact@..."
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block">
                 <span className="text-[#666] text-xs uppercase tracking-wide font-medium">WhatsApp</span>
                 <input value={newClient.contactWhatsApp} onChange={e => setNewClient(p => ({ ...p, contactWhatsApp: e.target.value }))}
                   placeholder="+971..."
@@ -614,6 +623,58 @@ export default function ClientsPage() {
               </label>
             </div>
           </div>
+
+          {/* Invoice / Billing fields */}
+          <div className="border-t border-[#1a1a1a] pt-4">
+            <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">Invoice &amp; Billing Details</p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — Legal Company Name</span>
+                <input value={newClient.billToCompany} onChange={e => setNewClient(p => ({ ...p, billToCompany: e.target.value }))}
+                  placeholder="e.g. Arab Land Trading LLC"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — TRN</span>
+                <input value={newClient.billToTrn} onChange={e => setNewClient(p => ({ ...p, billToTrn: e.target.value }))}
+                  placeholder="e.g. 100544168600003"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block md:col-span-2">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Bill To — Address</span>
+                <textarea value={newClient.billToAddress} onChange={e => setNewClient(p => ({ ...p, billToAddress: e.target.value }))}
+                  rows={2} placeholder="Street, area, P.O. Box, city, country"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none" />
+              </label>
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Email(s)</span>
+                <input value={newClient.invoiceEmails} onChange={e => setNewClient(p => ({ ...p, invoiceEmails: e.target.value }))}
+                  placeholder="billing@client.ae, cc@client.ae"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Prefix <span className="text-[#555] normal-case font-normal">(e.g. PD → PD/MAY/001)</span></span>
+                <input value={newClient.invoicePrefix ?? ""} onChange={e => setNewClient(p => ({ ...p, invoicePrefix: e.target.value.toUpperCase() }))}
+                  placeholder="e.g. PD, CL, GH"
+                  maxLength={6}
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none font-mono" />
+              </label>
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Description</span>
+                <input value={newClient.invoiceDesc} onChange={e => setNewClient(p => ({ ...p, invoiceDesc: e.target.value }))}
+                  placeholder="e.g. Content Creation & Marketing Package"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block col-span-2">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Notes <span className="text-[#555] normal-case">(one item per line, shown below description)</span></span>
+                <textarea value={newClient.invoiceNotes} onChange={e => setNewClient(p => ({ ...p, invoiceNotes: e.target.value }))}
+                  rows={4}
+                  placeholder={"18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management"}
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none font-mono leading-relaxed" />
+              </label>
+            </div>
+          </div>
+
           <div className="flex gap-3 pt-1">
             <button onClick={handleAdd} disabled={!newClient.name.trim()}
               className="bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">

@@ -37,14 +37,14 @@ function clientEffectiveRate(c: Client): number {
     c.fullRateDate &&
     new Date() < new Date(c.fullRateDate + "T00:00:00")
   ) return c.discountedRate;
-  return c.retainerAED ?? c.monthlyRetainer ?? 5500;
+  return c.retainerAED ?? c.monthlyRetainer ?? 0;
 }
 
 interface Lead {
   id: string;
   name: string;
   stage: string;
-  followUpDate?: string;
+  followup?: string;
 }
 
 interface Stats {
@@ -287,9 +287,9 @@ export default function Dashboard() {
   const todayLabel = now.toLocaleDateString("en-AE", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 
   const activeLeads = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost");
-  const followUpsDue = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost" && l.followUpDate && l.followUpDate <= todayStr);
+  const followUpsDue = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost" && l.followup && l.followup <= todayStr);
   const monthlyRevenue = clients.reduce((sum, c) => sum + clientEffectiveRate(c), 0);
-  const upcomingFollowUps = [...activeLeads].filter(l => l.followUpDate).sort((a, b) => a.followUpDate! < b.followUpDate! ? -1 : 1).slice(0, 3);
+  const upcomingFollowUps = [...activeLeads].filter(l => l.followup).sort((a, b) => a.followup! < b.followup! ? -1 : 1).slice(0, 3);
 
   function followUpColor(date: string) {
     if (date < todayStr) return "text-red-400";
@@ -515,9 +515,9 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-2">
                 {upcomingFollowUps.map((lead) => {
-                  const dateColor = followUpColor(lead.followUpDate!);
-                  const isOverdue = lead.followUpDate! < todayStr;
-                  const isToday = lead.followUpDate === todayStr;
+                  const dateColor = followUpColor(lead.followup!);
+                  const isOverdue = lead.followup! < todayStr;
+                  const isToday = lead.followup === todayStr;
                   return (
                     <div key={lead.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-[#0f0f0f] border border-[#1a1a1a]">
                       {isOverdue ? <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
@@ -525,7 +525,7 @@ export default function Dashboard() {
                         : <CheckCircle2 className="w-4 h-4 text-[#444] flex-shrink-0" />}
                       <span className="text-white text-sm font-medium flex-1 truncate">{lead.name}</span>
                       <span className="text-[#555] text-xs px-2 py-0.5 rounded-full bg-[#1a1a1a] flex-shrink-0">{lead.stage}</span>
-                      <span className={`text-xs font-medium flex-shrink-0 ${dateColor}`}>{formatDate(lead.followUpDate!)}</span>
+                      <span className={`text-xs font-medium flex-shrink-0 ${dateColor}`}>{formatDate(lead.followup!)}</span>
                     </div>
                   );
                 })}

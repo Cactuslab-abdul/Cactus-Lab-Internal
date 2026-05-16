@@ -22,12 +22,29 @@ interface GrowthClient {
 
 const STORAGE_KEY = "cactus-growth-clients";
 
-const CLIENT_LOGOS: Record<string, string> = {
+const FALLBACK_LOGOS: Record<string, string> = {
   "Pets Delight": "/logo-pets-delight.jpg",
 };
 
+function buildLogoMap(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem("cactus-clients");
+    if (raw) {
+      const clients: { name: string; logoUrl?: string }[] = JSON.parse(raw);
+      if (Array.isArray(clients)) {
+        const map: Record<string, string> = { ...FALLBACK_LOGOS };
+        clients.forEach((c) => {
+          if (c.name && c.logoUrl) map[c.name] = c.logoUrl;
+        });
+        return map;
+      }
+    }
+  } catch {}
+  return { ...FALLBACK_LOGOS };
+}
+
 function ClientLogo({ name, size = "sm" }: { name: string; size?: "sm" | "lg" }) {
-  const logoUrl = CLIENT_LOGOS[name];
+  const logoUrl = buildLogoMap()[name];
   const dim = size === "lg" ? "w-12 h-12" : "w-9 h-9";
   if (logoUrl) {
     return <img src={logoUrl} alt={name} className={`${dim} rounded-xl object-cover flex-shrink-0`} />;
@@ -91,8 +108,8 @@ export default function GrowthTrackerPage() {
               return {
                 ...c,
                 currentFollowers: c.currentFollowers > 0 ? c.currentFollowers : 7260,
-                goalFollowers: c.goalFollowers < 15000 ? 15000 : c.goalFollowers,
-                goalDate: "2026-12-31",
+                goalFollowers: c.goalFollowers ?? 15000,
+                goalDate: c.goalDate ?? "2026-12-31",
               };
             }
             return c;

@@ -137,7 +137,7 @@ export default function PaymentsPage() {
         : p
     ));
     setMarkingPaid(null);
-    setCcEmail("");
+    setCcEmail(defaultCc);
     setSending(false);
   };
 
@@ -148,7 +148,17 @@ export default function PaymentsPage() {
   const pending = payments.filter(p => p.status === "pending");
   const paid = payments.filter(p => p.status === "paid");
   const totalPending = pending.reduce((s, p) => s + p.amount, 0);
-  const totalPaid = paid.reduce((s, p) => s + p.amount, 0);
+
+  const now = new Date();
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const paidThisMonth = paid.filter(p => {
+    const dateStr = p.paidDate || p.dueDate;
+    if (!dateStr) return false;
+    const d = new Date(dateStr + "T00:00:00");
+    return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+  });
+  const totalPaid = paidThisMonth.reduce((s, p) => s + p.amount, 0);
 
   const todayStr = fmt(new Date());
   const overdue = pending.filter(p => p.dueDate < todayStr);
@@ -228,7 +238,7 @@ export default function PaymentsPage() {
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5">
           <p className="text-[#666] text-xs font-medium mb-1">Collected This Month</p>
           <p className="text-white text-2xl font-bold">{aed(totalPaid)}</p>
-          <p className="text-green-400 text-xs mt-1">{paid.length} payment{paid.length !== 1 ? "s" : ""} received</p>
+          <p className="text-green-400 text-xs mt-1">{paidThisMonth.length} payment{paidThisMonth.length !== 1 ? "s" : ""} received</p>
         </div>
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5">
           <p className="text-[#666] text-xs font-medium mb-1">Total Tracked</p>

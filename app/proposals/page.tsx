@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Printer, ArrowLeft } from "lucide-react";
+import { Printer, ArrowLeft, X, Plus } from "lucide-react";
 
 const CHALLENGES: Record<string, string> = {
   perfume: "Most perfume and watch businesses in Dubai have products that deserve to be seen — but no consistent Reels strategy to match. Without short-form video, you're invisible to the 18–35 buyers who discover brands entirely on Instagram. The brands growing fastest in this space aren't the ones with the biggest budgets. They're the ones showing up every week with content that stops the scroll.",
@@ -36,6 +36,16 @@ function getNextProposalNum(last: string | null): string | null {
   return null;
 }
 
+interface SavedClient {
+  id: string;
+  name: string;
+  contactName?: string;
+  niche?: string;
+  retainerAED?: number;
+  discountedRate?: number;
+  fullRateDate?: string;
+}
+
 interface ProposalData {
   number: string;
   date: string;
@@ -53,7 +63,21 @@ interface ProposalData {
   customVideos: number;
   customRate: number;
   specialTerms: string;
+  deliverables: string[];
 }
+
+const DEFAULT_DELIVERABLES = [
+  "15 short-form videos per month",
+  "Full scripting in your brand's voice",
+  "Professional filming at your location",
+  "Editing with captions, music & effects",
+  "Scheduling across Instagram",
+  "Bi-weekly performance updates",
+  "Monthly analytics report (by day 3)",
+  "Monthly 20-minute strategy call",
+  "1 revision round per video",
+  "You never need to appear on camera",
+];
 
 export default function ProposalsPage() {
   const today = new Date();
@@ -61,6 +85,7 @@ export default function ProposalsPage() {
   validDate.setDate(validDate.getDate() + 14);
 
   const [view, setView] = useState<"editor" | "proposal">("editor");
+  const [savedClients, setSavedClients] = useState<SavedClient[]>([]);
   const [form, setForm] = useState<ProposalData>({
     number: "",
     date: fmt(today),
@@ -78,13 +103,44 @@ export default function ProposalsPage() {
     customVideos: 10,
     customRate: 4000,
     specialTerms: "",
+    deliverables: DEFAULT_DELIVERABLES,
   });
 
   useEffect(() => {
     const last = localStorage.getItem("cactus-last-proposal-num");
     const next = getNextProposalNum(last);
     if (next) setForm(f => ({ ...f, number: next }));
+    try {
+      const raw = localStorage.getItem("cactus-clients");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) setSavedClients(parsed);
+      }
+    } catch {}
   }, []);
+
+  const getClientEffectiveRate = (client: SavedClient): number | null => {
+    if (!client.retainerAED) return null;
+    if (client.discountedRate && client.discountedRate > 0 && client.fullRateDate && new Date() < new Date(client.fullRateDate + "T00:00:00")) {
+      return client.discountedRate;
+    }
+    return client.retainerAED;
+  };
+
+  const handleClientSelect = (clientId: string) => {
+    const client = savedClients.find(c => c.id === clientId);
+    if (!client) return;
+    const rate = getClientEffectiveRate(client);
+    setForm(f => ({
+      ...f,
+      clientName: client.name,
+      clientContact: client.contactName || f.clientContact,
+      clientLocation: f.clientLocation,
+      ...(rate !== null
+        ? { pkg: "custom" as const, customRate: rate }
+        : {}),
+    }));
+  };
 
   const togglePlatform = (p: string) => {
     setForm(f => ({
@@ -115,20 +171,7 @@ export default function ProposalsPage() {
   if (view === "proposal") {
     const pkg = getPkg();
     const upfront = pkg.rate / 2;
-    const platformStr = form.platforms.length ? form.platforms.join(", ") : "Instagram";
-
-    const deliverables = [
-      `${pkg.videos} short-form videos per month`,
-      "Full scripting in your brand's voice",
-      "Professional filming at your location",
-      "Editing with captions, music & effects",
-      `Scheduling across ${platformStr}`,
-      "Bi-weekly performance updates",
-      "Monthly analytics report (by day 3)",
-      "Monthly 20-minute strategy call",
-      "1 revision round per video",
-      "You never need to appear on camera",
-    ];
+    const deliverables = form.deliverables;
 
     return (
       <>
@@ -326,6 +369,21 @@ export default function ProposalsPage() {
           </div>
         </div>
 
+        {/* Client auto-fill */}
+        {savedClients.length > 0 && (
+          <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6">
+            <h2 className="text-[#555] text-xs uppercase tracking-wider font-semibold mb-4">Auto-fill from Saved Client</h2>
+            <select
+              onChange={e => handleClientSelect(e.target.value)}
+              defaultValue=""
+              className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50 appearance-none"
+            >
+              <option value="" disabled>— Select a client to auto-fill details —</option>
+              {savedClients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
+          </div>
+        )}
+
         {/* Prospect details */}
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6">
           <h2 className="text-[#555] text-xs uppercase tracking-wider font-semibold mb-4">Prospect Details</h2>
@@ -376,6 +434,40 @@ export default function ProposalsPage() {
             onChange={e => setForm(f => ({ ...f, challenge: e.target.value }))}
             className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50 resize-none leading-relaxed"
           />
+        </div>
+
+        {/* Editable deliverables */}
+        <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6">
+          <h2 className="text-[#555] text-xs uppercase tracking-wider font-semibold mb-4">Deliverables</h2>
+          <div className="space-y-2">
+            {form.deliverables.map((item, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <input
+                  value={item}
+                  onChange={e => setForm(f => {
+                    const updated = [...f.deliverables];
+                    updated[i] = e.target.value;
+                    return { ...f, deliverables: updated };
+                  })}
+                  className="flex-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
+                />
+                <button
+                  onClick={() => setForm(f => ({ ...f, deliverables: f.deliverables.filter((_, idx) => idx !== i) }))}
+                  className="text-[#444] hover:text-red-400 transition-colors flex-shrink-0 p-1"
+                  title="Remove"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            onClick={() => setForm(f => ({ ...f, deliverables: [...f.deliverables, ""] }))}
+            className="mt-3 flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors border border-green-500/20 hover:border-green-500/40 px-3 py-1.5 rounded-lg"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add deliverable
+          </button>
         </div>
 
         {/* Social audit */}

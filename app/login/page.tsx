@@ -32,12 +32,7 @@ export default function LoginPage() {
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-green-500/10 border border-green-500/20 mb-5">
-            <svg viewBox="0 0 24 24" className="w-7 h-7 text-green-400" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3c-1.5 3-4 5-4 8a4 4 0 008 0c0-3-2.5-5-4-8z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M12 11v10M9 18h6" />
-            </svg>
-          </div>
+          <img src="/logo-cactus.png" alt="Cactus Lab" className="w-16 h-16 rounded-2xl object-contain mb-5" />
           <h1 className="text-white text-xl font-bold">Cactus Lab Agency OS</h1>
           <p className="text-[#555] text-sm mt-1">Sign in to access your workspace</p>
         </div>
