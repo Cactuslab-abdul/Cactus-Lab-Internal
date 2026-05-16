@@ -60,8 +60,8 @@ interface TeamMember {
 }
 
 const DEFAULT_TEAM: TeamMember[] = [
-  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "", email: "awab.sirelkhatim@gmail.com" },
-  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "", email: "abdul.ahmed.eg@gmail.com" },
+  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/Awab%20Image.jpeg", email: "awab.sirelkhatim@gmail.com" },
+  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/abdulrahman%20image.png", email: "abdul.ahmed.eg@gmail.com" },
 ];
 
 const quickActions = [

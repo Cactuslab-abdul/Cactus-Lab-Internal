@@ -72,6 +72,11 @@ function getNavSections(role: UserRole) {
     .filter(section => section.items.length > 0);
 }
 
+const KNOWN_AVATARS: Record<string, string> = {
+  "awab.sirelkhatim@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/Awab%20Image.jpeg",
+  "abdul.ahmed.eg@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/abdulrahman%20image.png",
+};
+
 interface UserProfile {
   id: string;
   email: string;
@@ -106,7 +111,7 @@ export default function Sidebar() {
         id: u.id,
         email: u.email || "",
         fullName,
-        avatarUrl: meta.avatar_url || null,
+        avatarUrl: meta.avatar_url || KNOWN_AVATARS[u.email || ""] || null,
         initials,
         imgError: false,
       });
@@ -170,7 +175,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-[#1e1e1e] flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src="/logo-cactus.png" alt="Cactus Lab" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+          <img src="https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/cactus%20lab%20social%20logo.png" alt="Cactus Lab" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
           <div>
             <h1 className="text-white font-bold text-sm leading-tight">Cactus Lab</h1>
             <p className="text-[#666] text-xs">Agency OS</p>

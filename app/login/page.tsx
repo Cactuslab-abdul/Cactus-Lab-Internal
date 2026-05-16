@@ -31,10 +31,12 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
-        <div className="text-center mb-10">
-          <img src="https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/cactus%20lab%20social%20logo.png" alt="Cactus Lab" className="w-16 h-16 rounded-2xl object-contain mb-5" />
-          <h1 className="text-white text-xl font-bold">Cactus Lab Agency OS</h1>
-          <p className="text-[#555] text-sm mt-1">Sign in to access your workspace</p>
+        <div className="flex items-center gap-4 mb-10">
+          <img src="https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/cactus%20lab%20social%20logo.png" alt="Cactus Lab" className="w-14 h-14 rounded-2xl object-contain flex-shrink-0" />
+          <div>
+            <h1 className="text-white text-xl font-bold">Cactus Lab Agency OS</h1>
+            <p className="text-[#555] text-sm mt-0.5">Sign in to access your workspace</p>
+          </div>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-3">
