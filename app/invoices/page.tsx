@@ -193,8 +193,18 @@ export default function InvoicesPage() {
     const client = savedClients.find(c => c.id === clientId);
     if (!client) return;
     const contact = [client.contactName, client.contactWhatsApp || client.contactEmail].filter(Boolean).join(" — ");
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    const prefix = client.invoicePrefix || derivePrefix(client.name);
+    const seq = getNextSeqNum(prefix);
+    const invoiceNum = `${prefix}/${MONTH_NAMES[month]}/${seq}`;
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    const terms = `Period of invoice: ${pad2(1)}/${pad2(month + 1)}/${year} to ${pad2(lastDay)}/${pad2(month + 1)}/${year}`;
     setForm(f => ({
       ...f,
+      number: invoiceNum,
+      terms,
       clientName: client.billToCompany || client.name,
       clientContact: contact,
       clientAddress: client.billToAddress || "",
@@ -226,8 +236,18 @@ export default function InvoicesPage() {
 
   const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
+  const SKIP_WORDS = new Set(["and", "the", "of", "a", "an", "or", "&"]);
+  function derivePrefix(name: string): string {
+    return name.split(" ")
+      .filter(w => !SKIP_WORDS.has(w.toLowerCase()))
+      .map(w => w[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 3);
+  }
+
   const quickGenerate = (client: QuickClient, month: number, year: number) => {
-    const prefix = (client.invoicePrefix || client.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 3));
+    const prefix = client.invoicePrefix || derivePrefix(client.name);
     const seq = getNextSeqNum(prefix);
     const invoiceNum = `${prefix}/${MONTH_NAMES[month]}/${seq}`;
     const invoiceDate = new Date(year, month, 1);
