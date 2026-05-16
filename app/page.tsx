@@ -25,8 +25,19 @@ interface Client {
   logoUrl?: string;
   niche?: string;
   retainerAED?: number;
+  discountedRate?: number;
+  fullRateDate?: string;
   // legacy fields (old format)
   monthlyRetainer?: number;
+}
+
+function clientEffectiveRate(c: Client): number {
+  if (
+    c.discountedRate && c.discountedRate > 0 &&
+    c.fullRateDate &&
+    new Date() < new Date(c.fullRateDate + "T00:00:00")
+  ) return c.discountedRate;
+  return c.retainerAED ?? c.monthlyRetainer ?? 5500;
 }
 
 interface Lead {
@@ -277,7 +288,7 @@ export default function Dashboard() {
 
   const activeLeads = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost");
   const followUpsDue = leads.filter(l => l.stage !== "Closed" && l.stage !== "Lost" && l.followUpDate && l.followUpDate <= todayStr);
-  const monthlyRevenue = clients.reduce((sum, c) => sum + (c.retainerAED ?? c.monthlyRetainer ?? 5500), 0);
+  const monthlyRevenue = clients.reduce((sum, c) => sum + clientEffectiveRate(c), 0);
   const upcomingFollowUps = [...activeLeads].filter(l => l.followUpDate).sort((a, b) => a.followUpDate! < b.followUpDate! ? -1 : 1).slice(0, 3);
 
   function followUpColor(date: string) {
@@ -480,7 +491,7 @@ export default function Dashboard() {
                           <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium flex-shrink-0 ${getNicheColor(client.niche)}`}>{client.niche}</span>
                         )}
                         <span className="text-green-400 text-xs ml-auto flex-shrink-0 font-medium">
-                          AED {(client.retainerAED ?? client.monthlyRetainer ?? 5500).toLocaleString()}/mo
+                          AED {clientEffectiveRate(client).toLocaleString()}/mo
                         </span>
                       </div>
                     </div>

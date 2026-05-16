@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package,
+  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 
@@ -25,6 +25,8 @@ interface Client {
   niche: string;
   package: string;
   retainerAED: number;
+  discountedRate?: number;
+  fullRateDate?: string;
   services: string;
   contactName: string;
   contactEmail: string;
@@ -36,6 +38,7 @@ interface Client {
   billToAddress: string;
   billToTrn: string;
   invoiceEmails: string;
+  invoicePrefix: string;
   invoiceDesc: string;
   invoiceNotes: string;
 }
@@ -46,6 +49,8 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   niche: NICHES[0],
   package: "Full Social Media Management",
   retainerAED: 5500,
+  discountedRate: 0,
+  fullRateDate: "",
   services: "15 short-form videos/month\nFull social media management\nNo on-camera client requirement",
   contactName: "",
   contactEmail: "",
@@ -57,6 +62,7 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   billToAddress: "",
   billToTrn: "",
   invoiceEmails: "",
+  invoicePrefix: "",
   invoiceDesc: "",
   invoiceNotes: "",
 };
@@ -79,9 +85,22 @@ const DEFAULT_CLIENTS: Client[] = [{
   billToAddress: "Al quoz industrial Area 1, street 8, warehouse 1-4\nP.O Box 29893, Dubai, UAE",
   billToTrn: "100544168600003",
   invoiceEmails: "",
+  invoicePrefix: "PD",
   invoiceDesc: "Content Creation & Marketing Package",
   invoiceNotes: "18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management",
 }];
+
+function isOnDiscount(client: Client): boolean {
+  return !!(
+    client.discountedRate && client.discountedRate > 0 &&
+    client.fullRateDate &&
+    new Date() < new Date(client.fullRateDate + "T00:00:00")
+  );
+}
+
+function effectiveRate(client: Client): number {
+  return isOnDiscount(client) ? client.discountedRate! : client.retainerAED;
+}
 
 function getNicheColor(niche: string) {
   const n = niche.toLowerCase();
@@ -180,10 +199,35 @@ function ClientCard({
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
             </label>
             <label className="block">
-              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Monthly Retainer (AED)</span>
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Full Rate (AED)</span>
               <input type="number" value={form.retainerAED} onChange={e => setForm(f => ({ ...f, retainerAED: Number(e.target.value) }))}
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none" />
             </label>
+            <div className="space-y-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!(form.discountedRate && form.discountedRate > 0)}
+                  onChange={e => setForm(f => ({ ...f, discountedRate: e.target.checked ? Math.round(f.retainerAED * 0.5) : 0, fullRateDate: e.target.checked ? f.fullRateDate : "" }))}
+                  className="rounded accent-amber-400"
+                />
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Intro / Discounted Rate</span>
+              </label>
+              {!!(form.discountedRate && form.discountedRate > 0) && (
+                <div className="grid grid-cols-2 gap-3 pl-3 border-l-2 border-amber-500/30">
+                  <label className="block">
+                    <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Current Rate (AED)</span>
+                    <input type="number" value={form.discountedRate} onChange={e => setForm(f => ({ ...f, discountedRate: Number(e.target.value) }))}
+                      className="mt-1 w-full bg-[#1a1a1a] border border-amber-500/30 rounded-xl px-3 py-2.5 text-amber-400 text-sm focus:border-amber-500/60 outline-none" />
+                  </label>
+                  <label className="block">
+                    <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Full Rate From</span>
+                    <input type="date" value={form.fullRateDate ?? ""} onChange={e => setForm(f => ({ ...f, fullRateDate: e.target.value }))}
+                      className="mt-1 w-full bg-[#1a1a1a] border border-amber-500/30 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500/60 outline-none" />
+                  </label>
+                </div>
+              )}
+            </div>
             <label className="block">
               <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Start Date</span>
               <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
@@ -260,6 +304,13 @@ function ClientCard({
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
             </label>
             <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Prefix <span className="text-[#555] normal-case font-normal">(e.g. PD → PD/MAY/001)</span></span>
+              <input value={form.invoicePrefix ?? ""} onChange={e => setForm(f => ({ ...f, invoicePrefix: e.target.value.toUpperCase() }))}
+                placeholder="e.g. PD, CL, GH"
+                maxLength={6}
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none font-mono" />
+            </label>
+            <label className="block">
               <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Line Description</span>
               <input value={form.invoiceDesc} onChange={e => setForm(f => ({ ...f, invoiceDesc: e.target.value }))}
                 placeholder="e.g. Content Creation & Marketing Package"
@@ -315,9 +366,22 @@ function ClientCard({
           <Package className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
           <span className="text-white text-sm font-medium">{client.package}</span>
         </div>
-        <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
-          <span className="text-green-400 text-sm font-bold">AED {client.retainerAED.toLocaleString()}<span className="text-green-400/60 font-normal">/mo</span></span>
-        </div>
+        {isOnDiscount(client) ? (
+          <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-2">
+              <span className="text-amber-400 text-sm font-bold">AED {client.discountedRate!.toLocaleString()}<span className="text-amber-400/60 font-normal">/mo</span></span>
+            </div>
+            <ArrowRight className="w-3.5 h-3.5 text-[#444] flex-shrink-0" />
+            <div className="flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2">
+              <span className="text-[#888] text-sm font-bold">AED {client.retainerAED.toLocaleString()}</span>
+              <span className="text-[#555] text-xs">· {formatDate(client.fullRateDate!)}</span>
+            </div>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+            <span className="text-green-400 text-sm font-bold">AED {client.retainerAED.toLocaleString()}<span className="text-green-400/60 font-normal">/mo</span></span>
+          </div>
+        )}
         {client.startDate && (
           <div className="flex items-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2">
             <Calendar className="w-3.5 h-3.5 text-[#666] flex-shrink-0" />
@@ -432,7 +496,7 @@ export default function ClientsPage() {
     setShowAddForm(false);
   };
 
-  const totalRevenue = clients.reduce((s, c) => s + c.retainerAED, 0);
+  const totalRevenue = clients.reduce((s, c) => s + effectiveRate(c), 0);
 
   return (
     <div className="space-y-8 fade-in">
@@ -493,10 +557,35 @@ export default function ClientsPage() {
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
               </label>
               <label className="block">
-                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Monthly Retainer (AED)</span>
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Full Rate (AED)</span>
                 <input type="number" value={newClient.retainerAED} onChange={e => setNewClient(p => ({ ...p, retainerAED: Number(e.target.value) }))}
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm focus:border-green-500/50 outline-none" />
               </label>
+              <div className="space-y-2">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={!!(newClient.discountedRate && newClient.discountedRate > 0)}
+                    onChange={e => setNewClient(p => ({ ...p, discountedRate: e.target.checked ? Math.round(p.retainerAED * 0.5) : 0, fullRateDate: e.target.checked ? p.fullRateDate : "" }))}
+                    className="rounded accent-amber-400"
+                  />
+                  <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Intro / Discounted Rate</span>
+                </label>
+                {!!(newClient.discountedRate && newClient.discountedRate > 0) && (
+                  <div className="grid grid-cols-2 gap-3 pl-3 border-l-2 border-amber-500/30">
+                    <label className="block">
+                      <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Current Rate (AED)</span>
+                      <input type="number" value={newClient.discountedRate} onChange={e => setNewClient(p => ({ ...p, discountedRate: Number(e.target.value) }))}
+                        className="mt-1 w-full bg-[#1a1a1a] border border-amber-500/30 rounded-xl px-3 py-2.5 text-amber-400 text-sm focus:border-amber-500/60 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Full Rate From</span>
+                      <input type="date" value={newClient.fullRateDate ?? ""} onChange={e => setNewClient(p => ({ ...p, fullRateDate: e.target.value }))}
+                        className="mt-1 w-full bg-[#1a1a1a] border border-amber-500/30 rounded-xl px-3 py-2.5 text-white text-sm focus:border-amber-500/60 outline-none" />
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="space-y-3">
               <label className="block">

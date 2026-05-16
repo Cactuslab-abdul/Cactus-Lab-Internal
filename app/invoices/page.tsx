@@ -35,12 +35,15 @@ function getNextInvoiceNum(last: string | null): string | null {
   return null;
 }
 
-function getNextSeqNum(): string {
-  const last = localStorage.getItem("cactus-last-invoice-num");
+function getNextSeqNum(prefix: string): string {
+  const key = `cactus-invoice-seq-${prefix.toUpperCase()}`;
+  const last = localStorage.getItem(key);
   if (!last) return "001";
-  const match = last.match(/(\d+)$/);
-  if (match) return String(parseInt(match[1], 10) + 1).padStart(3, "0");
-  return "001";
+  return String(parseInt(last, 10) + 1).padStart(3, "0");
+}
+
+function saveSeqNum(prefix: string, seq: string) {
+  localStorage.setItem(`cactus-invoice-seq-${prefix.toUpperCase()}`, seq);
 }
 
 const MONTH_NAMES = ["JANUARY","FEBRUARY","MARCH","APRIL","MAY","JUNE","JULY","AUGUST","SEPTEMBER","OCTOBER","NOVEMBER","DECEMBER"];
@@ -72,6 +75,7 @@ interface ReceiptData {
   clientName: string;
   amountPaid: number;
   paymentMethod: string;
+  paymentType: string;
   notes: string;
 }
 
@@ -87,9 +91,24 @@ interface QuickClient {
   contactWhatsApp?: string;
   contactEmail?: string;
   retainerAED?: number;
+  discountedRate?: number;
+  fullRateDate?: string;
   invoiceEmails?: string;
+  invoicePrefix?: string;
   invoiceDesc?: string;
   invoiceNotes?: string;
+}
+
+function isClientOnDiscount(client: QuickClient): boolean {
+  return !!(
+    client.discountedRate && client.discountedRate > 0 &&
+    client.fullRateDate &&
+    new Date() < new Date(client.fullRateDate + "T00:00:00")
+  );
+}
+
+function clientEffectiveRate(client: QuickClient): number {
+  return isClientOnDiscount(client) ? client.discountedRate! : (client.retainerAED || 0);
 }
 
 export default function InvoicesPage() {
@@ -126,6 +145,7 @@ export default function InvoicesPage() {
     clientName: "",
     amountPaid: "",
     paymentMethod: "Bank Transfer",
+    paymentType: "Full Payment",
     notes: "",
   });
   const [receiptData, setReceiptData] = useState<ReceiptData | null>(null);
@@ -175,7 +195,7 @@ export default function InvoicesPage() {
     }));
     if (client.retainerAED) {
       const desc = client.invoiceDesc || "Social media management — short-form video package";
-      setItems([{ id: 1, desc, qty: 1, rate: client.retainerAED, notes: "" }]);
+      setItems([{ id: 1, desc, qty: 1, rate: clientEffectiveRate(client), notes: "" }]);
     }
     setCurrentClient(client);
   };
@@ -199,14 +219,15 @@ export default function InvoicesPage() {
   const MONTH_SHORT = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   const quickGenerate = (client: QuickClient, month: number, year: number) => {
-    const seq = getNextSeqNum();
-    const invoiceNum = `PD/${MONTH_NAMES[month]}/${seq}`;
+    const prefix = (client.invoicePrefix || client.name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 3));
+    const seq = getNextSeqNum(prefix);
+    const invoiceNum = `${prefix}/${MONTH_NAMES[month]}/${seq}`;
     const invoiceDate = new Date(year, month, 1);
     const dueDateObj = new Date(year, month, 8);
     const lastDay = new Date(year, month + 1, 0).getDate();
     const terms = `Period of invoice: ${pad2(1)}/${pad2(month + 1)}/${year} to ${pad2(lastDay)}/${pad2(month + 1)}/${year}`;
     const desc = client.invoiceDesc || "Social media management — short-form video package";
-    const rate = client.retainerAED || 5500;
+    const rate = clientEffectiveRate(client) || 5500;
     const newItems: LineItem[] = [{ id: 1, desc, qty: 1, rate, notes: client.invoiceNotes || "" }];
     const data: InvoiceData = {
       number: invoiceNum,
@@ -238,7 +259,7 @@ export default function InvoicesPage() {
     setItems(newItems);
     setInvoiceData(data);
     setCurrentClient(client);
-    localStorage.setItem("cactus-last-invoice-num", invoiceNum);
+    saveSeqNum(prefix, seq);
     setView("invoice");
     window.scrollTo(0, 0);
   };
@@ -283,6 +304,7 @@ export default function InvoicesPage() {
       clientName: receiptForm.clientName || form.clientName,
       amountPaid: parseFloat(receiptForm.amountPaid) || 0,
       paymentMethod: receiptForm.paymentMethod,
+      paymentType: receiptForm.paymentType,
       notes: receiptForm.notes,
     });
     setView("receiptView");
@@ -584,6 +606,10 @@ export default function InvoicesPage() {
               <span>{fmtDisplay(receiptData.date)}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
+              <span style={{ color: "#6b7280", fontWeight: 600 }}>Payment Type</span>
+              <span style={{ fontWeight: 600 }}>{receiptData.paymentType}</span>
+            </div>
+            <div style={{ display: "flex", justifyContent: "space-between", padding: "10px 0", borderBottom: "1px solid #f3f4f6" }}>
               <span style={{ color: "#6b7280", fontWeight: 600 }}>Payment Method</span>
               <span>{receiptData.paymentMethod}</span>
             </div>
@@ -662,7 +688,14 @@ export default function InvoicesPage() {
                       )}
                     </div>
                     {client.retainerAED && (
-                      <span className="ml-auto text-green-400 text-sm font-semibold">AED {client.retainerAED.toLocaleString()}/mo</span>
+                      isClientOnDiscount(client) ? (
+                        <div className="ml-auto flex items-center gap-2">
+                          <span className="text-[#555] text-xs line-through">AED {client.retainerAED.toLocaleString()}</span>
+                          <span className="text-amber-400 text-sm font-semibold">AED {client.discountedRate!.toLocaleString()}/mo</span>
+                        </div>
+                      ) : (
+                        <span className="ml-auto text-green-400 text-sm font-semibold">AED {client.retainerAED.toLocaleString()}/mo</span>
+                      )
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -941,6 +974,25 @@ export default function InvoicesPage() {
                   onChange={e => setReceiptForm(f => ({ ...f, amountPaid: e.target.value }))}
                   className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white placeholder-[#555] focus:outline-none focus:border-green-500/50"
                 />
+              </div>
+              <div>
+                <label className="text-[#555] text-xs block mb-1.5">Payment Type</label>
+                <div className="flex gap-1 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg p-1">
+                  {["Full Payment", "Partial Payment", "Upfront"].map(t => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setReceiptForm(f => ({ ...f, paymentType: t }))}
+                      className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all ${
+                        receiptForm.paymentType === t
+                          ? "bg-green-500/15 border border-green-500/30 text-green-400"
+                          : "text-[#555] hover:text-white"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
               </div>
               <div>
                 <label className="text-[#555] text-xs block mb-1.5">Payment Method</label>

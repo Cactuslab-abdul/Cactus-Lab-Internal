@@ -34,7 +34,7 @@ export default function PaymentsPage() {
   const [editingCc, setEditingCc] = useState(false);
   const [ccDraft, setCcDraft] = useState("");
   const [sending, setSending] = useState(false);
-  const [savedClients, setSavedClients] = useState<Array<{ id: string; name: string; contactEmail?: string; retainerAED?: number }>>([]);
+  const [savedClients, setSavedClients] = useState<Array<{ id: string; name: string; contactEmail?: string; retainerAED?: number; discountedRate?: number; fullRateDate?: string }>>([]);
 
   // Add form state
   const [newPayment, setNewPayment] = useState({
@@ -75,7 +75,11 @@ export default function PaymentsPage() {
       ...p,
       clientName: client.name,
       clientEmail: client.contactEmail || "",
-      amount: client.retainerAED ? String(client.retainerAED) : p.amount,
+      amount: client.retainerAED ? String(
+        (client.discountedRate && client.discountedRate > 0 && client.fullRateDate && new Date() < new Date(client.fullRateDate + "T00:00:00"))
+          ? client.discountedRate
+          : client.retainerAED
+      ) : p.amount,
     }));
   };
 
