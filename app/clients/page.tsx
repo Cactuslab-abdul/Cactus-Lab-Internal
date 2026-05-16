@@ -38,6 +38,7 @@ interface Client {
   billToAddress: string;
   billToTrn: string;
   invoiceEmails: string;
+  invoiceCc: string;
   invoicePrefix: string;
   invoiceDesc: string;
   invoiceNotes: string;
@@ -62,6 +63,7 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   billToAddress: "",
   billToTrn: "",
   invoiceEmails: "",
+  invoiceCc: "",
   invoicePrefix: "",
   invoiceDesc: "",
   invoiceNotes: "",
@@ -75,8 +77,8 @@ const DEFAULT_CLIENTS: Client[] = [{
   package: "Full Social Media Management",
   retainerAED: 5500,
   services: "15 short-form videos/month\nFull social media management\nNo on-camera client requirement\nContent strategy & planning",
-  contactName: "",
-  contactEmail: "",
+  contactName: "Marwan",
+  contactEmail: "marwan@mepetcare.com",
   contactWhatsApp: "",
   contactInstagram: "@petsdelightdubai",
   startDate: "2025-03-01",
@@ -84,7 +86,8 @@ const DEFAULT_CLIENTS: Client[] = [{
   billToCompany: "Arab Land Trading LLC",
   billToAddress: "Al quoz industrial Area 1, street 8, warehouse 1-4\nP.O Box 29893, Dubai, UAE",
   billToTrn: "100544168600003",
-  invoiceEmails: "",
+  invoiceEmails: "marwan@mepetcare.com",
+  invoiceCc: "Raveena@petsdelight.com",
   invoicePrefix: "PD",
   invoiceDesc: "Content Creation & Marketing Package",
   invoiceNotes: "18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management",
@@ -299,9 +302,15 @@ function ClientCard({
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none" />
             </label>
             <label className="block">
-              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Email(s)</span>
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice To (primary)</span>
               <input value={form.invoiceEmails} onChange={e => setForm(f => ({ ...f, invoiceEmails: e.target.value }))}
-                placeholder="billing@client.ae, cc@client.ae"
+                placeholder="billing@client.ae"
+                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+            </label>
+            <label className="block">
+              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice CC</span>
+              <input value={form.invoiceCc ?? ""} onChange={e => setForm(f => ({ ...f, invoiceCc: e.target.value }))}
+                placeholder="cc@client.ae"
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
             </label>
             <label className="block">
@@ -462,16 +471,26 @@ export default function ClientsPage() {
             const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
             if (defaults) {
               // Only add fields that are missing from old saved data — never overwrite user edits
+              // Exception: migrate stale Raveena-only contact to Marwan for Pets Delight
+              const isPetsDelightStale = c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "");
               return {
                 ...c,
                 invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
                 discountedRate: c.discountedRate ?? defaults.discountedRate,
                 fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
+                invoiceCc: c.invoiceCc ?? defaults.invoiceCc,
+                ...(isPetsDelightStale ? {
+                  contactName: defaults.contactName,
+                  contactEmail: defaults.contactEmail,
+                  invoiceEmails: defaults.invoiceEmails,
+                  invoiceCc: defaults.invoiceCc,
+                } : {}),
               };
             }
             return {
               ...c,
               invoicePrefix: c.invoicePrefix ?? "",
+              invoiceCc: c.invoiceCc ?? "",
               discountedRate: c.discountedRate ?? 0,
               fullRateDate: c.fullRateDate ?? "",
               invoiceNotes: c.invoiceNotes ?? "",
@@ -648,9 +667,15 @@ export default function ClientsPage() {
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none resize-none" />
               </label>
               <label className="block">
-                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice Email(s)</span>
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice To (primary)</span>
                 <input value={newClient.invoiceEmails} onChange={e => setNewClient(p => ({ ...p, invoiceEmails: e.target.value }))}
-                  placeholder="billing@client.ae, cc@client.ae"
+                  placeholder="billing@client.ae"
+                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
+              </label>
+              <label className="block">
+                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Invoice CC</span>
+                <input value={newClient.invoiceCc ?? ""} onChange={e => setNewClient(p => ({ ...p, invoiceCc: e.target.value }))}
+                  placeholder="cc@client.ae"
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
               </label>
               <label className="block">

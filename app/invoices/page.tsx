@@ -98,6 +98,7 @@ interface QuickClient {
   discountedRate?: number;
   fullRateDate?: string;
   invoiceEmails?: string;
+  invoiceCc?: string;
   invoicePrefix?: string;
   invoiceDesc?: string;
   invoiceNotes?: string;
@@ -184,7 +185,16 @@ export default function InvoicesPage() {
       const raw = localStorage.getItem("cactus-clients");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) setSavedClients(parsed);
+        if (Array.isArray(parsed)) {
+          const patched = parsed.map((c: QuickClient) => {
+            if (c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "")) {
+              return { ...c, contactName: "Marwan", contactEmail: "marwan@mepetcare.com", invoiceEmails: "marwan@mepetcare.com", invoiceCc: "Raveena@petsdelight.com" };
+            }
+            return { ...c, invoiceCc: c.invoiceCc ?? "" };
+          });
+          localStorage.setItem("cactus-clients", JSON.stringify(patched));
+          setSavedClients(patched);
+        }
       }
     } catch {}
   }, []);
@@ -388,7 +398,7 @@ export default function InvoicesPage() {
             onClick={() => {
               const name = currentClient?.contactName || "";
               const msgBody = invoiceData ? buildMessageTemplate(name, invoiceData.date) : "";
-              setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: "", contactName: name, messageBody: msgBody, sending: false, sent: false, error: "" });
+              setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: currentClient?.invoiceCc || "", contactName: name, messageBody: msgBody, sending: false, sent: false, error: "" });
             }}
             className="flex items-center gap-2 text-sm bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400 font-semibold px-4 py-2 rounded-lg transition-colors"
           >
