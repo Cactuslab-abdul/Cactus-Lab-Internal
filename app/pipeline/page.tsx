@@ -19,7 +19,7 @@ const STAGES = [
   { key: "Lost", color: "#f87171", bg: "#4c1d1d" },
 ];
 
-const NICHES = ["Perfume", "Watch", "Car", "Recruitment", "Spice", "Restaurant", "Retail", "Pet", "Other"];
+const NICHES = ["Perfume", "Watch", "Car", "Recruitment", "Spice", "Restaurant", "Retail", "Pet", "Real Estate & Construction", "Other"];
 const CHANNELS = ["Instagram DM", "Walk-in", "WhatsApp", "Referral", "Cold call"];
 
 interface Lead {

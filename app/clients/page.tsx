@@ -13,7 +13,7 @@ const NICHES = [
   "Recruitment & HR",
   "Food & Spices",
   "Fashion & Lifestyle",
-  "Real Estate",
+  "Real Estate & Construction",
   "Fitness & Wellness",
   "Other",
 ];
@@ -109,6 +109,7 @@ function getNicheColor(niche: string) {
   if (n.includes("perfume") || n.includes("watch")) return "bg-purple-500/15 text-purple-400 border-purple-500/20";
   if (n.includes("car")) return "bg-blue-500/15 text-blue-400 border-blue-500/20";
   if (n.includes("recruit")) return "bg-yellow-500/15 text-yellow-400 border-yellow-500/20";
+  if (n.includes("real estate") || n.includes("construction")) return "bg-amber-500/15 text-amber-400 border-amber-500/20";
   return "bg-[#222] text-[#888] border-[#2a2a2a]";
 }
 

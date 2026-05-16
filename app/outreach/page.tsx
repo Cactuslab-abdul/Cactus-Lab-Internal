@@ -26,7 +26,7 @@ const NICHES = [
   "Spice / Food Business",
   "Pet Business",
   "Restaurant / Cafe",
-  "Real Estate",
+  "Real Estate & Construction",
   "Retail / E-commerce",
   "Other",
 ];

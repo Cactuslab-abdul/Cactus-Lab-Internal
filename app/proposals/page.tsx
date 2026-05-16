@@ -10,7 +10,7 @@ const CHALLENGES: Record<string, string> = {
   food: "Food businesses live and die on visual content. A 30-second Reel of your product can reach 10,000 buyers in Dubai for zero ad spend — but only if you're posting consistently. Most food businesses in the UAE are sitting on a goldmine of content they're not creating. That's the gap we fill.",
   pet: "Pet owners in the UAE are among the most engaged consumers on Instagram. A pet business with a consistent Reels strategy can grow from hundreds to tens of thousands of followers in under six months — and convert that audience directly into customers. The window is open right now. Most pet businesses here aren't doing it yet.",
   restaurant: "In Dubai, dining decisions start on Instagram. If your restaurant isn't showing up in Reels — food reveals, behind-the-scenes, atmosphere clips — you're invisible to the people actively looking for their next spot. The restaurants filling up every weekend are the ones posting every week.",
-  realestate: "Dubai real estate is one of the most competitive markets in the world. Agents posting consistent video content — property tours, neighbourhood guides, market updates — generate significantly more inbound leads than those who don't. Your listings deserve to be seen. Your personal brand deserves to be built.",
+  realestate_construction: "Dubai real estate and construction is one of the most competitive markets in the world. Agents, developers, and contractors posting consistent video content — property tours, neighbourhood guides, project updates, before-and-afters — generate significantly more inbound leads than those who don't. Your listings and projects deserve to be seen. Your personal brand deserves to be built.",
   retail: "Retail in the UAE has moved to short-form video. Your products need to be seen in motion, in context, in use. Static posts don't convert the way they used to. Reels do. The brands growing fastest on Instagram right now are the ones who figured this out — and started posting consistently.",
   other: "In today's UAE market, a consistent social media presence is one of the highest-ROI investments a business can make. Your competitors are posting video content regularly. Without a Reels strategy, you're invisible to customers who are actively looking for exactly what you offer.",
 };
@@ -418,7 +418,7 @@ export default function ProposalsPage() {
               <option value="food">Spice / Food Business</option>
               <option value="pet">Pet Business</option>
               <option value="restaurant">Restaurant / Cafe</option>
-              <option value="realestate">Real Estate</option>
+              <option value="realestate_construction">Real Estate &amp; Construction</option>
               <option value="retail">Retail / E-commerce</option>
               <option value="other">Other</option>
             </select>
