@@ -1,24 +1,25 @@
 # Cactus Lab
 
 ## Status
-_Last updated: 2026-05-18_
-2 active clients. MRR: AED 8,500/month. Crystalline started May 18. Client portal system fully built and live — each client gets their own login-gated portal. Cross-device sync wired (⚠️ needs 1 Supabase SQL step to activate).
+_Last updated: 2026-05-18 (end of day)_
+2 active clients. MRR: AED 8,500/month. Crystalline started May 18. Client portal system fully built and live. Cross-device sync wired but **intermittent — needs investigation tomorrow morning**.
 
 ## Active Projects
-- **Agency OS** — live at https://cactuslabos.netlify.app. Client portals built. Sync built (pending Supabase RLS).
+- **Agency OS** — live at https://cactuslabos.netlify.app. Client portals built. Sync deployed but unreliable.
 - **Client Portals** — Pets Delight portal live (invite pending). Crystalline portal built (email needed). See [[Clients/Client Portal/]].
-- **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min, wrapup pushes session notes automatically
+- **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min
 - **Crystalline** — started May 18. Invoice 1 AED 2,500. First content items in portal.
 
 ## This Week (May 18)
 - Built full client portal system: admin view (internal) + client view (login-gated per email)
 - Client login at `/portal/login` — `raveena@petsdelight.com` maps to `/portal/pets-delight`
 - Fixed sidebar broken logo + user avatar initials fallback
-- Cross-device sync for todos + clients via Supabase Storage (`lib/sync.ts`)
+- Cross-device sync for todos + clients via Supabase Storage (`lib/sync.ts`) — deployed, debugging in progress
 - Crystalline added as second client with seed data and portal
+- Verbose sync logging added to `lib/sync.ts` to diagnose tomorrow
 
-## ⚠️ Action Required Tomorrow
-1. **Supabase SQL** → run 3 RLS policies for `app-data` bucket → see session notes for SQL
+## 🔴 Fix First Thing Tomorrow
+1. **Cross-device task sync** — Awab can't see Abdul's tasks. Verbose `[sync]` logs now in console. Open Tasks page on both devices, check console for auth state + success/fail. Fix whatever's blocking.
 2. **Invite Raveena** → Supabase Auth → Users → Invite → `raveena@petsdelight.com`
 3. **Crystalline email** → get from client → add to `lib/portal-auth.ts` → redeploy
 4. **WhatsApp number** → replace `+971501234567` in `lib/portal-seed.ts` with Awab's real number

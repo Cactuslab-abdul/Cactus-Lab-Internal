@@ -80,12 +80,13 @@ USING (bucket_id = 'app-data' AND auth.role() = 'authenticated');
 
 | # | Task | Who | Notes |
 |---|------|-----|-------|
-| 1 | Run Supabase RLS SQL (3 policies for `app-data`) | Abdul/Awab | 30 seconds in SQL Editor |
+| 1 | **🔴 FIX: Cross-device task sync broken** | Claude | Abdul adds task → Awab can't see it. Verbose logging added to `lib/sync.ts`. Need to diagnose in morning — check console logs on both devices, confirm file actually lands in Supabase Storage `app-data` bucket. |
 | 2 | Invite `raveena@petsdelight.com` via Supabase Auth | Awab | Dashboard → Auth → Users → Invite User |
 | 3 | Add Crystalline portal email to `lib/portal-auth.ts` | Claude (need email from Awab) | Uncomment line + add real email |
 | 4 | Replace `agencyWhatsApp: "+971501234567"` in `lib/portal-seed.ts` | Abdul | Use Awab's real WhatsApp number |
 | 5 | Add client logos (Pets Delight + Crystalline) | Abdul | Update `logoUrl` in seed data or admin Settings tab |
 | 6 | Video upload feature | Claude next session | Upload to Supabase `videos` bucket, client sees "Watch Video" button |
+| 7 | Strip verbose `[sync]` console logs once sync is confirmed working | Claude | Replace with silent error-only logging |
 
 ---
 
