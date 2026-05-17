@@ -21,9 +21,12 @@ _Last updated: 2026-05-18 (end of day)_
 
 ## 🔴 Fix First Thing Tomorrow
 1. **Cross-device task sync** — Awab can't see Abdul's tasks. Verbose `[sync]` logs now in console. Open Tasks page on both devices, check console for auth state + success/fail. Fix whatever's blocking.
-2. **Invite Raveena** → Supabase Auth → Users → Invite → `raveena@petsdelight.com`
-3. **Crystalline email** → get from client → add to `lib/portal-auth.ts` → redeploy
-4. **WhatsApp number** → replace `+971501234567` in `lib/portal-seed.ts` with Awab's real number
+2. **Crystalline meeting** — align on what they want for their website. Come with questions: pages, style, content, deadline.
+3. **Crystalline website** — start building after meeting brief is captured.
+4. **Crystalline contract** — get it signed before pushing any deliverables. No signed contract = no work starts.
+5. **Pets Delight portal handover** — invite `raveena@petsdelight.com` via Supabase Auth → Users → Invite. Send her the portal link once she's in.
+6. **Crystalline email** → get from client → add to `lib/portal-auth.ts` → redeploy portal access
+7. **WhatsApp number** → replace `+971501234567` in `lib/portal-seed.ts` with Awab's real number
 
 ## Decisions Log
 | Date | Decision | Made by |
