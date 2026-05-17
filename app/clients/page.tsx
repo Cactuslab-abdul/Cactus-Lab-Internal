@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { syncLoad, syncSave } from "@/lib/sync";
 import Link from "next/link";
 import {
   Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, ExternalLink,
@@ -498,55 +499,57 @@ export default function ClientsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [newClient, setNewClient] = useState<Omit<Client, "id">>(EMPTY_CLIENT);
 
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem("cactus-clients");
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const migrated = parsed.map((c: Client) => {
-            const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
-            if (defaults) {
-              // Only add fields that are missing from old saved data — never overwrite user edits
-              // Exception: migrate stale Raveena-only contact to Marwan for Pets Delight
-              const isPetsDelightStale = c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "");
-              return {
-                ...c,
-                invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
-                discountedRate: c.discountedRate ?? defaults.discountedRate,
-                fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
-                invoiceCc: c.invoiceCc ?? defaults.invoiceCc,
-                ...(isPetsDelightStale ? {
-                  contactName: defaults.contactName,
-                  contactEmail: defaults.contactEmail,
-                  invoiceEmails: defaults.invoiceEmails,
-                  invoiceCc: defaults.invoiceCc,
-                } : {}),
-              };
-            }
-            return {
-              ...c,
-              invoicePrefix: c.invoicePrefix ?? "",
-              invoiceCc: c.invoiceCc ?? "",
-              discountedRate: c.discountedRate ?? 0,
-              fullRateDate: c.fullRateDate ?? "",
-              invoiceNotes: c.invoiceNotes ?? "",
-            };
-          });
-          setClients(migrated);
-          localStorage.setItem("cactus-clients", JSON.stringify(migrated));
-          return;
-        }
+  const migrate = useCallback((parsed: Client[]): Client[] => {
+    return parsed.map((c: Client) => {
+      const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
+      if (defaults) {
+        const isPetsDelightStale = c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "");
+        return {
+          ...c,
+          invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
+          discountedRate: c.discountedRate ?? defaults.discountedRate,
+          fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
+          invoiceCc: c.invoiceCc ?? defaults.invoiceCc,
+          ...(isPetsDelightStale ? {
+            contactName: defaults.contactName,
+            contactEmail: defaults.contactEmail,
+            invoiceEmails: defaults.invoiceEmails,
+            invoiceCc: defaults.invoiceCc,
+          } : {}),
+        };
       }
-    } catch {}
-    setClients(DEFAULT_CLIENTS);
-    localStorage.setItem("cactus-clients", JSON.stringify(DEFAULT_CLIENTS));
+      return {
+        ...c,
+        invoicePrefix: c.invoicePrefix ?? "",
+        invoiceCc: c.invoiceCc ?? "",
+        discountedRate: c.discountedRate ?? 0,
+        fullRateDate: c.fullRateDate ?? "",
+        invoiceNotes: c.invoiceNotes ?? "",
+      };
+    });
   }, []);
 
-  const save = (updated: Client[]) => {
+  useEffect(() => {
+    const localRaw = (() => {
+      try { return JSON.parse(localStorage.getItem("cactus-clients") ?? "null"); } catch { return null; }
+    })();
+    const localClients: Client[] = Array.isArray(localRaw) && localRaw.length > 0
+      ? migrate(localRaw)
+      : DEFAULT_CLIENTS;
+
+    // Supabase is source of truth; fall back to local if unreachable
+    syncLoad<Client[]>("clients", localClients).then(synced => {
+      const result = synced.length > 0 ? migrate(synced) : localClients;
+      setClients(result);
+      localStorage.setItem("cactus-clients", JSON.stringify(result));
+    });
+  }, [migrate]);
+
+  const save = useCallback((updated: Client[]) => {
     setClients(updated);
     localStorage.setItem("cactus-clients", JSON.stringify(updated));
-  };
+    syncSave("clients", updated);
+  }, []);
 
   const handleAdd = () => {
     if (!newClient.name.trim()) return;

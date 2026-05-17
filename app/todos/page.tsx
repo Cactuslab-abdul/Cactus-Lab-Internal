@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { syncLoad, syncSave } from "@/lib/sync";
 import {
   CheckSquare,
   Plus,
@@ -320,10 +321,14 @@ export default function TodosPage() {
   const [clients, setClients] = useState<string[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem("cactus-todos");
-      if (raw) setTodos(JSON.parse(raw));
-    } catch { /* ignore */ }
+    // Load todos: Supabase is source of truth, fall back to localStorage
+    const localTodos = (() => {
+      try { return JSON.parse(localStorage.getItem("cactus-todos") ?? "null") ?? []; } catch { return []; }
+    })();
+    syncLoad<Todo[]>("todos", localTodos).then(todos => {
+      setTodos(todos);
+      localStorage.setItem("cactus-todos", JSON.stringify(todos));
+    });
 
     try {
       const raw = localStorage.getItem("cactus-clients");
@@ -334,10 +339,11 @@ export default function TodosPage() {
     } catch { /* ignore */ }
   }, []);
 
-  const save = (updated: Todo[]) => {
+  const save = useCallback((updated: Todo[]) => {
     setTodos(updated);
     localStorage.setItem("cactus-todos", JSON.stringify(updated));
-  };
+    syncSave("todos", updated);
+  }, []);
 
   const handleAdd = (data: Omit<Todo, "id" | "createdAt">) => {
     save([{ ...data, id: `${Date.now()}`, createdAt: new Date().toISOString() }, ...todos]);
