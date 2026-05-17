@@ -3,6 +3,15 @@
 .trash/
 .DS_Store
 
+# Next.js
+.next/
+node_modules/
+next-env.d.ts
+
+# Env — never commit secrets
+.env.local
+.env*.local
+
 # Large media files — store separately, not in git
 *.mp4
 *.mov
