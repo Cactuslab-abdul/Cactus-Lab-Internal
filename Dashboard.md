@@ -1,25 +1,34 @@
 # Cactus Lab
 
 ## Status
-_Last updated: 2026-05-17_
-2 active clients. MRR: AED 8,500/month. Crystalline onboarding plan fully built — starts Monday May 18. Agency OS live at https://cactuslabos.netlify.app — cross-device sync fully working.
+_Last updated: 2026-05-18_
+2 active clients. MRR: AED 8,500/month. Crystalline started May 18. Client portal system fully built and live — each client gets their own login-gated portal. Cross-device sync wired (⚠️ needs 1 Supabase SQL step to activate).
 
 ## Active Projects
-- **Agency OS** — live. Sync, avatars, outreach improvements all in. Humanized email prompt pending deploy.
+- **Agency OS** — live at https://cactuslabos.netlify.app. Client portals built. Sync built (pending Supabase RLS).
+- **Client Portals** — Pets Delight portal live (invite pending). Crystalline portal built (email needed). See [[Clients/Client Portal/]].
 - **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min, wrapup pushes session notes automatically
-- **Crystalline** — onboarding plan complete. Contract + Invoice 1 (AED 2,500) due Monday May 18. Site visit to be booked. Website build Month 1.
+- **Crystalline** — started May 18. Invoice 1 AED 2,500. First content items in portal.
 
-## This Week
-- Full Crystalline onboarding plan built: 15-video content plan, Meta Ads Manager strategy (AED 2,000/mo), billing schedule, onboarding checklist
-- Invoice 1: AED 2,500 (AED 1,500 half-month SMM + AED 1,000 website)
-- Billing escalation: AED 3,500 (M2) → AED 3,500 (M3) → AED 6,000 (M4, Aug)
-- Ad budget separate: AED 2,000/mo passed through to Meta — NOT boosting, proper Meta Ads Manager
-- HTML plan doc saved to Desktop: Crystalline_Month1_Plan.html (5 tabs)
-- Honest projection: 3–5 closes Month 1 (6 is stretch — bottleneck is Ammar's DM speed)
+## This Week (May 18)
+- Built full client portal system: admin view (internal) + client view (login-gated per email)
+- Client login at `/portal/login` — `raveena@petsdelight.com` maps to `/portal/pets-delight`
+- Fixed sidebar broken logo + user avatar initials fallback
+- Cross-device sync for todos + clients via Supabase Storage (`lib/sync.ts`)
+- Crystalline added as second client with seed data and portal
+
+## ⚠️ Action Required Tomorrow
+1. **Supabase SQL** → run 3 RLS policies for `app-data` bucket → see session notes for SQL
+2. **Invite Raveena** → Supabase Auth → Users → Invite → `raveena@petsdelight.com`
+3. **Crystalline email** → get from client → add to `lib/portal-auth.ts` → redeploy
+4. **WhatsApp number** → replace `+971501234567` in `lib/portal-seed.ts` with Awab's real number
 
 ## Decisions Log
 | Date | Decision | Made by |
 |------|----------|---------|
+| 2026-05-18 | Client portals use Supabase Auth — client email maps to portal slug via `CLIENT_EMAIL_MAP`. No separate auth system needed. | Abdulrahman |
+| 2026-05-18 | Approve/revision flow via WhatsApp pre-fill — no backend write, zero infrastructure cost | Abdulrahman |
+| 2026-05-18 | Cross-device sync via Supabase Storage `app-data` bucket — localStorage stays as offline fallback | Abdulrahman |
 | 2026-05-13 | No changes this session — orientation only | Abdulrahman |
 | 2026-05-13 | Vault cleanup — merged Sessions 1 into Sessions, removed Meetings/Projects/Resources, consolidated Pets Delight notes into Clients/ | Abdulrahman |
 | 2026-05-13 | Videos excluded from git (too large); use Google Drive for video sharing | Awab |
