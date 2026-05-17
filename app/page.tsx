@@ -60,8 +60,8 @@ interface TeamMember {
 }
 
 const DEFAULT_TEAM: TeamMember[] = [
-  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/Awab%20Image.jpeg", email: "awab.sirelkhatim@gmail.com" },
-  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/abdulrahman%20image.png", email: "abdul.ahmed.eg@gmail.com" },
+  { id: "1", name: "Awab Sirelkhatim", role: "CEO", avatarUrl: "", email: "awab.sirelkhatim@gmail.com" },
+  { id: "2", name: "Abdulrahman Abuzaid", role: "Operations Manager", avatarUrl: "", email: "abdul.ahmed.eg@gmail.com" },
 ];
 
 const quickActions = [
@@ -101,6 +101,7 @@ function TeamCard({
 }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState({ name: member.name, role: member.role, avatarUrl: member.avatarUrl, email: member.email });
+  const [imgError, setImgError] = useState(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   const save = () => {
@@ -145,7 +146,7 @@ function TeamCard({
           <input
             ref={urlInputRef}
             value={form.avatarUrl}
-            onChange={e => setForm(f => ({ ...f, avatarUrl: e.target.value }))}
+            onChange={e => { setImgError(false); setForm(f => ({ ...f, avatarUrl: e.target.value })); }}
             placeholder="Photo URL (paste link)"
             className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-2 py-1.5 text-xs text-white placeholder-[#444] focus:outline-none focus:border-green-500/50"
           />
@@ -177,8 +178,8 @@ function TeamCard({
           {/* Avatar with online indicator */}
           <div className="relative">
             <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 ring-2 ring-[#2a2a2a]">
-              {member.avatarUrl
-                ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" />
+              {member.avatarUrl && !imgError
+                ? <img src={member.avatarUrl} alt={member.name} className="w-full h-full object-cover" onError={() => setImgError(true)} />
                 : (
                   <div className="w-full h-full bg-gradient-to-br from-green-500/30 to-green-700/20 flex items-center justify-center text-base font-bold text-green-300">
                     {initials(member.name)}

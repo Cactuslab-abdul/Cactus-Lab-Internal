@@ -74,10 +74,7 @@ function getNavSections(role: UserRole) {
     .filter(section => section.items.length > 0);
 }
 
-const KNOWN_AVATARS: Record<string, string> = {
-  "awab.sirelkhatim@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/Awab%20Image.jpeg",
-  "abdul.ahmed.eg@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/abdulrahman%20image.png",
-};
+const KNOWN_AVATARS: Record<string, string> = {};
 
 interface UserProfile {
   id: string;
