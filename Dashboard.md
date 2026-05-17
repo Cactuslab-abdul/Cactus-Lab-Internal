@@ -2,13 +2,14 @@
 
 ## Status
 _Last updated: 2026-05-18 (end of day)_
-2 active clients. MRR: AED 8,500/month. Crystalline started May 18. Client portal system fully built and live. Cross-device sync wired but **intermittent — needs investigation tomorrow morning**.
+2 active clients. MRR: AED 8,500/month. Crystalline started May 18. Client portal system fully built and live. Cross-device sync wired but **intermittent — needs investigation tomorrow morning**. cactuslab.ae favicon + SEO deployed.
 
 ## Active Projects
 - **Agency OS** — live at https://cactuslabos.netlify.app. Client portals built. Sync deployed but unreliable.
 - **Client Portals** — Pets Delight portal live (invite pending). Crystalline portal built (email needed). See [[Clients/Client Portal/]].
 - **Vault Sync** — fully operational; Awab's machine auto-pulls every 5 min
 - **Crystalline** — started May 18. Invoice 1 AED 2,500. First content items in portal.
+- **cactuslab.ae** — favicon live, SEO/OG tags deployed. Google re-indexing not yet requested.
 
 ## This Week (May 18)
 - Built full client portal system: admin view (internal) + client view (login-gated per email)
