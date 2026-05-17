@@ -27,6 +27,7 @@ _Last updated: 2026-05-18 (end of day)_
 5. **Pets Delight portal handover** — invite `raveena@petsdelight.com` via Supabase Auth → Users → Invite. Send her the portal link once she's in.
 6. **Crystalline email** → get from client → add to `lib/portal-auth.ts` → redeploy portal access
 7. **WhatsApp number** → replace `+971501234567` in `lib/portal-seed.ts` with Awab's real number
+8. **Netlify deploy** → check cactuslabos dashboard — confirm latest push auto-deployed (invoice contact fix). If not, trigger manually.
 
 ## Decisions Log
 | Date | Decision | Made by |
