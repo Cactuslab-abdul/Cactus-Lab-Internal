@@ -29,7 +29,15 @@ export async function middleware(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = req.nextUrl;
 
-  const isPublic = pathname.startsWith("/login") || pathname.startsWith("/auth");
+  // /portal/login — public (client login page)
+  // /api/portal/* — public (data endpoints, auth enforced in the page itself)
+  // /portal/[slug] — guarded client-side (Supabase session check in the page component)
+  // /login + /auth — internal team auth
+  const isPublic =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/portal") ||
+    pathname.startsWith("/api/portal/");
 
   if (!user && !isPublic) {
     const loginUrl = req.nextUrl.clone();

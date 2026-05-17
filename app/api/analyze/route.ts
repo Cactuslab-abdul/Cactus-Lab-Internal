@@ -3,6 +3,25 @@ import { anthropic, MODEL, SYSTEM_PROMPTS } from "@/lib/anthropic";
 import { scrapeUrls } from "@/lib/scraper";
 import Anthropic from "@anthropic-ai/sdk";
 
+function extractJSON(text: string): Record<string, unknown> | null {
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  const candidates = fenced ? [fenced[1], text] : [text];
+  for (const src of candidates) {
+    const objects: string[] = [];
+    let depth = 0, start = -1;
+    for (let i = 0; i < src.length; i++) {
+      if (src[i] === "{") { if (depth++ === 0) start = i; }
+      else if (src[i] === "}" && depth > 0) {
+        if (--depth === 0 && start !== -1) { objects.push(src.slice(start, i + 1)); start = -1; }
+      }
+    }
+    for (const obj of objects.sort((a, b) => b.length - a.length)) {
+      try { return JSON.parse(obj) as Record<string, unknown>; } catch { /* try next */ }
+    }
+  }
+  return null;
+}
+
 export const maxDuration = 90;
 
 export async function POST(req: NextRequest) {
@@ -69,7 +88,7 @@ Perform a deep analysis and return a JSON object with this EXACT structure:
         try {
           const response = await anthropic.messages.create({
             model: MODEL,
-            max_tokens: 3000,
+            max_tokens: 4000,
             system: SYSTEM_PROMPTS.urlAnalyzer,
             tools: [webSearchTool],
             messages: [{ role: "user", content: prompt }],
@@ -82,10 +101,10 @@ Perform a deep analysis and return a JSON object with this EXACT structure:
             }
           }
 
-          const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-          if (!jsonMatch) throw new Error("No JSON in response");
+          const parsed = extractJSON(responseText);
+          if (!parsed) throw new Error("No JSON in response");
 
-          return JSON.parse(jsonMatch[0]);
+          return parsed;
         } catch {
           return {
             url: scraped.url,

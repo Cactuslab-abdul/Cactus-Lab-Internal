@@ -18,6 +18,7 @@ import {
   LogOut,
   Upload,
   CreditCard,
+  CheckSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isAdminEmail } from "@/lib/useRole";
@@ -28,6 +29,7 @@ const allNavSections = [
     label: "OVERVIEW",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+      { href: "/todos", label: "Tasks", icon: CheckSquare, adminOnly: false },
     ],
   },
   {
@@ -72,10 +74,7 @@ function getNavSections(role: UserRole) {
     .filter(section => section.items.length > 0);
 }
 
-const KNOWN_AVATARS: Record<string, string> = {
-  "awab.sirelkhatim@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/Awab%20Image.jpeg",
-  "abdul.ahmed.eg@gmail.com": "https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/abdulrahman%20image.png",
-};
+const KNOWN_AVATARS: Record<string, string> = {};
 
 interface UserProfile {
   id: string;
@@ -175,7 +174,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="p-5 border-b border-[#1e1e1e] flex-shrink-0">
         <div className="flex items-center gap-3">
-          <img src="https://tpxyegbeluspgashouzb.supabase.co/storage/v1/object/public/avatars/cactus%20lab%20social%20logo.png" alt="Cactus Lab" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+          <img src="/logo-cactus.png" alt="Cactus Lab" className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
           <div>
             <h1 className="text-white font-bold text-sm leading-tight">Cactus Lab</h1>
             <p className="text-[#666] text-xs">Agency OS</p>
@@ -232,7 +231,7 @@ export default function Sidebar() {
                 key={avatarKey}
                 src={user!.avatarUrl!}
                 alt={user!.fullName}
-                onError={() => setUser(prev => prev ? { ...prev, imgError: true } : prev)}
+                onError={() => setUser(prev => prev ? { ...prev, imgError: true, avatarUrl: null } : prev)}
                 className="w-8 h-8 rounded-full object-cover ring-2 ring-[#2a2a2a] group-hover:ring-green-500/50 transition-all"
               />
             ) : (

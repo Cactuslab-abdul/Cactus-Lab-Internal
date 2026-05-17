@@ -5,7 +5,7 @@ import Sidebar from "@/components/sidebar";
 
 export default function ConditionalLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === "/login" || pathname.startsWith("/auth");
+  const isAuthPage = pathname === "/login" || pathname.startsWith("/auth") || pathname.startsWith("/portal");
 
   if (isAuthPage) {
     return <>{children}</>;
