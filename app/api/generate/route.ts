@@ -1,6 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
 import { anthropic, MODEL, SYSTEM_PROMPTS } from "@/lib/anthropic";
 
+function extractJSON(text: string): Record<string, unknown> | null {
+  // Strip markdown code fences first
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  const candidates = fenced ? [fenced[1], text] : [text];
+
+  for (const src of candidates) {
+    // Walk chars and extract the deepest outermost JSON object
+    const objects: string[] = [];
+    let depth = 0, start = -1;
+    for (let i = 0; i < src.length; i++) {
+      if (src[i] === "{") { if (depth++ === 0) start = i; }
+      else if (src[i] === "}" && depth > 0) {
+        if (--depth === 0 && start !== -1) { objects.push(src.slice(start, i + 1)); start = -1; }
+      }
+    }
+    // Prefer the longest valid object (most complete JSON)
+    for (const obj of objects.sort((a, b) => b.length - a.length)) {
+      try { return JSON.parse(obj) as Record<string, unknown>; } catch { /* try next */ }
+    }
+  }
+  return null;
+}
+
 export const maxDuration = 60;
 
 export async function POST(req: NextRequest) {
@@ -15,19 +38,27 @@ export async function POST(req: NextRequest) {
     }
 
     const contentTypeLabels: Record<string, string> = {
+      // Reel/TikTok/Short types
       educational: "Educational (teach something valuable, position as expert)",
       comedic: "Comedic (funny, relatable, shareable — UAE humor)",
       brand_story: "Brand Story (origin story, mission, behind-the-scenes)",
       testimonial: "Testimonial (client result, social proof, transformation)",
+      // LinkedIn types
+      thought_leadership: "Thought Leadership (industry insight, establish as expert, long-form take)",
+      case_study: "Case Study (client result, before/after, measurable outcome)",
+      tips_value: "Tips & Value (actionable advice list, practical takeaways)",
+      company_update: "Company Update (news, milestone, team or product announcement)",
     };
+
+    const isLinkedIn = format === "LinkedIn Post";
+    const durationLine = isLinkedIn ? "" : `Video Duration: ${duration}\n`;
 
     const prompt = `Create a complete viral content pack for:
 
 Niche/Client: ${niche}
 Content Goal: ${goal}
 Platform Format: ${format}
-Video Duration: ${duration}
-Tone: ${tone}
+${durationLine}Tone: ${tone}
 Content Type: ${contentTypeLabels[contentType] || contentType}
 ${topic ? `Specific Topic/Idea: ${topic}` : "Choose the most viral topic for this niche"}
 
@@ -64,13 +95,8 @@ Make this genuinely viral. Think about scroll-stopping hooks, trending formats, 
       }
     }
 
-    // Parse JSON
-    const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error("No JSON found in response");
-    }
-
-    const data = JSON.parse(jsonMatch[0]);
+    const data = extractJSON(responseText);
+    if (!data) throw new Error("No valid JSON found in response");
     return NextResponse.json(data);
   } catch (error) {
     console.error("Generate API error:", error);

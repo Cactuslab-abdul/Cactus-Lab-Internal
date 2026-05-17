@@ -18,6 +18,7 @@ import {
   LogOut,
   Upload,
   CreditCard,
+  CheckSquare,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { isAdminEmail } from "@/lib/useRole";
@@ -28,6 +29,7 @@ const allNavSections = [
     label: "OVERVIEW",
     items: [
       { href: "/", label: "Dashboard", icon: LayoutDashboard, adminOnly: false },
+      { href: "/todos", label: "Tasks", icon: CheckSquare, adminOnly: false },
     ],
   },
   {

@@ -17,6 +17,7 @@ import {
   Lightbulb,
   TrendingUp,
   Key,
+  BarChart2,
 } from "lucide-react";
 
 interface ContentIdea {
@@ -192,6 +193,20 @@ function AnalysisCard({ result, index }: { result: AnalysisResult; index: number
               </div>
             )}
           </div>
+
+          {/* Estimated Performance */}
+          {result.estimatedPerformance && result.estimatedPerformance !== "N/A" && (
+            <div className="bg-[#1a1a1a] border border-[#252525] rounded-xl p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <BarChart2 className="w-4 h-4 text-teal-400" />
+                  <span className="text-white text-sm font-medium">Estimated Performance</span>
+                </div>
+                <CopyButton text={result.estimatedPerformance} />
+              </div>
+              <p className="text-teal-300 text-sm font-medium leading-relaxed">{result.estimatedPerformance}</p>
+            </div>
+          )}
 
           {/* Viral factors */}
           {result.viralFactors && result.viralFactors.length > 0 && (
