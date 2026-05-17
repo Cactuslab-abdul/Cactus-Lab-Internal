@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
-  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight,
+  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, ExternalLink,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 
@@ -69,7 +70,33 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   invoiceNotes: "",
 };
 
-const DEFAULT_CLIENTS: Client[] = [{
+const DEFAULT_CLIENTS: Client[] = [
+{
+  id: "crystalline",
+  name: "Crystalline",
+  logoUrl: "",
+  niche: "Real Estate & Construction",
+  package: "Full Social Media Management",
+  retainerAED: 5500,
+  discountedRate: 2500,
+  fullRateDate: "2026-06-18",
+  services: "15 short-form videos/month\nFull social media management\nContent strategy & planning\nNo on-camera client requirement",
+  contactName: "",
+  contactEmail: "",
+  contactWhatsApp: "",
+  contactInstagram: "",
+  startDate: "2026-05-18",
+  notes: "New client. Started May 18, 2026. First invoice AED 2,500.",
+  billToCompany: "Crystalline Aluminium & Glass",
+  billToAddress: "",
+  billToTrn: "",
+  invoiceEmails: "",
+  invoiceCc: "",
+  invoicePrefix: "CR",
+  invoiceDesc: "Content Creation & Marketing Package",
+  invoiceNotes: "15 short-form videos\nFull social media management\nContent strategy & planning",
+},
+{
   id: "pets-delight",
   name: "Pets Delight",
   logoUrl: "/logo-pets-delight.jpg",
@@ -358,14 +385,24 @@ function ClientCard({
                 {client.niche}
               </span>
             </div>
-            {!readonly && (
-              <button
-                onClick={() => setEditing(true)}
-                className="flex-shrink-0 p-1.5 rounded-lg text-[#444] hover:text-white hover:bg-[#1a1a1a] transition-colors"
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <Link
+                href={`/clients/portal/${client.id}`}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-lg text-[#555] hover:text-green-400 hover:bg-green-500/5 border border-transparent hover:border-green-500/15 transition-all font-medium"
+                title="Manage client portal"
               >
-                <Edit2 className="w-4 h-4" />
-              </button>
-            )}
+                <ExternalLink className="w-3.5 h-3.5" />
+                Portal
+              </Link>
+              {!readonly && (
+                <button
+                  onClick={() => setEditing(true)}
+                  className="p-1.5 rounded-lg text-[#444] hover:text-white hover:bg-[#1a1a1a] transition-colors"
+                >
+                  <Edit2 className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
