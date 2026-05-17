@@ -92,6 +92,7 @@ interface QuickClient {
   billToAddress?: string;
   billToTrn?: string;
   contactName?: string;
+  billingContactName?: string;
   contactWhatsApp?: string;
   contactEmail?: string;
   retainerAED?: number;
@@ -185,16 +186,7 @@ export default function InvoicesPage() {
       const raw = localStorage.getItem("cactus-clients");
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          const patched = parsed.map((c: QuickClient) => {
-            if (c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "")) {
-              return { ...c, contactName: "Marwan", contactEmail: "marwan@mepetcare.com", invoiceEmails: "marwan@mepetcare.com", invoiceCc: "Raveena@petsdelight.com" };
-            }
-            return { ...c, invoiceCc: c.invoiceCc ?? "" };
-          });
-          localStorage.setItem("cactus-clients", JSON.stringify(patched));
-          setSavedClients(patched);
-        }
+        if (Array.isArray(parsed)) setSavedClients(parsed);
       }
     } catch {}
   }, []);
@@ -396,7 +388,7 @@ export default function InvoicesPage() {
           </button>
           <button
             onClick={() => {
-              const name = currentClient?.contactName || "";
+              const name = currentClient?.billingContactName || currentClient?.contactName || "";
               const msgBody = invoiceData ? buildMessageTemplate(name, invoiceData.date) : "";
               setSendModal({ show: true, to: currentClient?.invoiceEmails || "", cc: currentClient?.invoiceCc || "", contactName: name, messageBody: msgBody, sending: false, sent: false, error: "" });
             }}
