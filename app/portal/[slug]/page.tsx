@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   CheckCircle2, Clock, AlertCircle, PlayCircle, Star, ExternalLink,
   TrendingUp, Users, Eye, Activity, FileText, Package,
   ChevronUp, ChevronDown, MessageCircle, Check, X, RotateCcw,
-  CalendarDays, BadgeCheck, Loader2,
+  CalendarDays, BadgeCheck, Loader2, LogOut,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { slugForEmail } from "@/lib/portal-auth";
 import type { PortalData, ContentItem, ContentStatus, AnalyticsWeek, PortalInvoice } from "@/lib/portal-types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -566,12 +568,43 @@ type Tab = "content" | "analytics" | "invoices" | "package";
 
 export default function ClientPortalPage() {
   const params = useParams();
+  const router = useRouter();
   const slug = typeof params.slug === "string" ? params.slug : Array.isArray(params.slug) ? params.slug[0] : "";
 
   const [data, setData] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authChecked, setAuthChecked] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [tab, setTab] = useState<Tab>("content");
+
+  // ── Auth gate ────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) {
+        router.replace("/portal/login");
+        return;
+      }
+      const userSlug = slugForEmail(user.email ?? "");
+      if (!userSlug) {
+        // Logged in but not a client — maybe it's Awab/Abdul, redirect to OS
+        router.replace("/");
+        return;
+      }
+      if (userSlug !== slug) {
+        // Right client, wrong portal URL — redirect to their own
+        router.replace(`/portal/${userSlug}`);
+        return;
+      }
+      setAuthChecked(true);
+    });
+  }, [slug, router]);
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/portal/login");
+  };
 
   const [selectedMonth, setSelectedMonth] = useState<string>(() => {
     const now = new Date();
@@ -579,7 +612,7 @@ export default function ClientPortalPage() {
   });
 
   useEffect(() => {
-    if (!slug) return;
+    if (!slug || !authChecked) return;
     fetch(`/api/portal/${slug}`)
       .then(r => {
         if (r.status === 404) { setNotFound(true); return null; }
@@ -587,7 +620,7 @@ export default function ClientPortalPage() {
       })
       .then(d => { if (d) setData(d as PortalData); })
       .finally(() => setLoading(false));
-  }, [slug]);
+  }, [slug, authChecked]);
 
   if (loading) {
     return (
@@ -658,6 +691,13 @@ export default function ClientPortalPage() {
               </div>
             )}
             <span className="text-white text-sm font-medium hidden sm:block">{data.clientName}</span>
+            <button
+              onClick={handleLogout}
+              className="ml-2 p-1.5 rounded-lg text-[#444] hover:text-red-400 hover:bg-red-500/5 transition-all"
+              title="Sign out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </header>
