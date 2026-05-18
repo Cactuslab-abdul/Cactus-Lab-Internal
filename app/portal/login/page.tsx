@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { slugForEmail } from "@/lib/portal-auth";
 import { Loader2, LogIn } from "lucide-react";
 
 export default function PortalLoginPage() {
@@ -27,11 +26,11 @@ export default function PortalLoginPage() {
       return;
     }
 
-    const userEmail = data.user.email ?? "";
-    const slug = slugForEmail(userEmail);
+    // Look up which portal slug belongs to this email
+    const slugRes = await fetch("/api/portal/my-slug");
+    const { slug } = await slugRes.json() as { slug: string | null };
 
     if (!slug) {
-      // Not a client email — sign them out and show error
       await supabase.auth.signOut();
       setError("This email doesn't have portal access. Contact your account manager.");
       setLoading(false);

@@ -9,7 +9,6 @@ import {
   CalendarDays, BadgeCheck, Loader2, LogOut,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { slugForEmail } from "@/lib/portal-auth";
 import type { PortalData, ContentItem, ContentStatus, AnalyticsWeek, PortalInvoice } from "@/lib/portal-types";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -580,12 +579,13 @@ export default function ClientPortalPage() {
   // ── Auth gate ────────────────────────────────────────────────────────────
   useEffect(() => {
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) {
         router.replace("/portal/login");
         return;
       }
-      const userSlug = slugForEmail(user.email ?? "");
+      const res = await fetch("/api/portal/my-slug");
+      const { slug: userSlug } = await res.json() as { slug: string | null };
       if (!userSlug) {
         // Logged in but not a client — maybe it's Awab/Abdul, redirect to OS
         router.replace("/");

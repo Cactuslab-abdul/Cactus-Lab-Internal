@@ -7,7 +7,7 @@ import {
   ArrowLeft, Plus, Save, Trash2, ExternalLink,
   PlayCircle, TrendingUp, FileText, Package,
   CheckCircle2, AlertCircle, Clock, RotateCcw,
-  Loader2, X, Star, BadgeCheck,
+  Loader2, X, Star, BadgeCheck, KeyRound, Copy, Eye, EyeOff,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 import type { PortalData, ContentItem, ContentStatus, ContentType, AnalyticsWeek, PortalInvoice } from "@/lib/portal-types";
@@ -612,13 +612,177 @@ function InvoicesTab({ data, onChange }: { data: PortalData; onChange: (d: Porta
   );
 }
 
+// ─── Portal Access section ────────────────────────────────────────────────────
+
+function PortalAccessSection({ slug, portalUrl }: { slug: string; portalUrl: string }) {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [done, setDone] = useState<{ email: string; password: string; url: string } | null>(null);
+
+  const fullUrl = typeof window !== "undefined" ? `${window.location.origin}${portalUrl}` : portalUrl;
+
+  const create = async () => {
+    if (!email.trim() || !password.trim()) return;
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/portal/admin/create-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), password, slug }),
+      });
+      const json = await res.json();
+      if (!res.ok) { setError(json.error ?? "Failed to create login"); return; }
+      setDone({ email: email.trim(), password, url: fullUrl + "/login" });
+      setOpen(false);
+      setEmail("");
+      setPassword("");
+    } catch {
+      setError("Network error — try again");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  function CopyRow({ label, value }: { label: string; value: string }) {
+    const [copied, setCopied] = useState(false);
+    const copy = () => {
+      navigator.clipboard.writeText(value);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    };
+    return (
+      <div className="flex items-center gap-3 bg-[#1a1a1a] rounded-xl px-4 py-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[#555] text-xs uppercase tracking-wide font-medium mb-0.5">{label}</p>
+          <p className="text-white text-sm font-mono truncate">{value}</p>
+        </div>
+        <button onClick={copy} className="text-[#555] hover:text-green-400 transition-colors flex-shrink-0">
+          {copied ? <CheckCircle2 className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[#555] text-xs uppercase tracking-wide font-semibold">Portal Login Access</p>
+          <p className="text-[#444] text-xs mt-1">Create credentials to hand off to the client — they never touch Supabase.</p>
+        </div>
+        <button
+          onClick={() => { setOpen(true); setDone(null); setError(""); }}
+          className="flex items-center gap-2 bg-green-500/10 border border-green-500/20 hover:bg-green-500/15 text-green-400 font-medium px-4 py-2 rounded-xl text-sm transition-all flex-shrink-0"
+        >
+          <KeyRound className="w-4 h-4" />
+          Create Login
+        </button>
+      </div>
+
+      {/* Success credentials panel */}
+      {done && (
+        <div className="space-y-2 pt-1">
+          <p className="text-green-400 text-xs font-medium flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5" />
+            Login created — share these details with the client
+          </p>
+          <CopyRow label="Login URL" value={done.url} />
+          <CopyRow label="Email" value={done.email} />
+          <CopyRow label="Password" value={done.password} />
+          <p className="text-[#444] text-xs text-center pt-1">Send all three to your client on WhatsApp</p>
+        </div>
+      )}
+
+      {/* Create modal */}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="w-full max-w-md bg-[#111] border border-[#2a2a2a] rounded-2xl p-6 space-y-5 fade-in"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <h3 className="text-white font-semibold">Create Portal Login</h3>
+                <p className="text-[#555] text-sm mt-0.5">You set the password — no invite email is sent.</p>
+              </div>
+              <button onClick={() => setOpen(false)} className="text-[#555] hover:text-white transition-colors">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="raveena@petsdelight.com"
+                  autoFocus
+                  className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white text-sm placeholder-[#444] focus:border-[#3a3a3a] outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Password</label>
+                <div className="relative">
+                  <input
+                    type={showPw ? "text" : "password"}
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder="Choose a password for them"
+                    className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 pr-11 text-white text-sm placeholder-[#444] focus:border-[#3a3a3a] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw(s => !s)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#444] hover:text-[#888] transition-colors"
+                  >
+                    {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <p className="text-red-400 text-sm bg-red-500/5 border border-red-500/15 rounded-xl px-4 py-3">{error}</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={create}
+                disabled={loading || !email.trim() || !password.trim()}
+                className="flex-1 flex items-center justify-center gap-2 bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold py-3 rounded-xl text-sm transition-colors"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                {loading ? "Creating…" : "Create Login"}
+              </button>
+              <button onClick={() => setOpen(false)} className="px-4 py-3 text-[#666] hover:text-white text-sm transition-colors">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Settings tab ─────────────────────────────────────────────────────────────
 
-function SettingsTab({ data, onChange }: { data: PortalData; onChange: (d: PortalData) => void }) {
+function SettingsTab({ data, onChange, slug, portalUrl }: { data: PortalData; onChange: (d: PortalData) => void; slug: string; portalUrl: string }) {
   const [form, setForm] = useState({ ...data });
 
   return (
     <div className="space-y-5">
+      <PortalAccessSection slug={slug} portalUrl={portalUrl} />
       <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
         <p className="text-[#555] text-xs uppercase tracking-wide font-semibold">Portal Settings</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -866,7 +1030,7 @@ export default function PortalAdminPage() {
       {tab === "content" && <ContentTab data={data} onChange={d => { setData(d); save(d); }} />}
       {tab === "analytics" && <AnalyticsTab data={data} onChange={d => { setData(d); save(d); }} />}
       {tab === "invoices" && <InvoicesTab data={data} onChange={d => { setData(d); save(d); }} />}
-      {tab === "settings" && <SettingsTab data={data} onChange={d => { setData(d); save(d); }} />}
+      {tab === "settings" && <SettingsTab data={data} onChange={d => { setData(d); save(d); }} slug={slug} portalUrl={portalUrl} />}
     </div>
   );
 }
