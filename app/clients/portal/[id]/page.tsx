@@ -858,7 +858,7 @@ function SettingsTab({ data, onChange, slug, portalUrl }: { data: PortalData; on
 export default function PortalAdminPage() {
   const params = useParams();
   const router = useRouter();
-  const { isAdmin } = useRole();
+  const { isAdmin, loading: roleLoading } = useRole();
   const clientId = typeof params.id === "string" ? params.id : Array.isArray(params.id) ? params.id[0] : "";
 
   const [data, setData] = useState<PortalData | null>(null);
@@ -871,6 +871,7 @@ export default function PortalAdminPage() {
   const [slug, setSlug] = useState<string>("");
 
   useEffect(() => {
+    if (roleLoading) return;
     if (!isAdmin) { router.replace("/clients"); return; }
 
     // Derive slug from clientId (same pattern as clients localStorage)
@@ -888,7 +889,7 @@ export default function PortalAdminPage() {
       }
     } catch {}
     setSlug(clientId);
-  }, [clientId, isAdmin, router]);
+  }, [clientId, isAdmin, roleLoading, router]);
 
   useEffect(() => {
     if (!slug) return;
