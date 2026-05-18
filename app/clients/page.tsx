@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import {
   Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
+import PortalManagement from "@/components/portal-management";
 
 const NICHES = [
   "Pets & Pet Products",
@@ -145,11 +145,13 @@ function ClientCard({
   client,
   onUpdate,
   onDelete,
+  onOpenPortal,
   readonly,
 }: {
   client: Client;
   onUpdate: (c: Client) => void;
   onDelete: (id: string) => void;
+  onOpenPortal: (clientId: string) => void;
   readonly: boolean;
 }) {
   const [editing, setEditing] = useState(false);
@@ -453,18 +455,18 @@ function ClientCard({
         </div>
       )}
 
-      {/* Portal link */}
+      {/* Portal action */}
       <div className="border-t border-[#1a1a1a] pt-4">
-        <Link
-          href={`/clients/portal/${client.id}`}
-          className="flex items-center justify-between gap-2 bg-[#1a1a1a] hover:bg-[#1e1e1e] border border-[#2a2a2a] hover:border-green-500/20 rounded-xl px-4 py-3 transition-all group"
+        <button
+          onClick={() => onOpenPortal(client.id)}
+          className="w-full flex items-center justify-between gap-2 bg-green-500/5 hover:bg-green-500/10 border border-green-500/20 hover:border-green-500/40 rounded-xl px-4 py-3 transition-all group"
         >
           <div className="flex items-center gap-2.5">
             <LayoutDashboard className="w-4 h-4 text-green-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">Client Portal</span>
+            <span className="text-white text-sm font-medium">Open Portal Dashboard</span>
           </div>
-          <span className="text-[#444] group-hover:text-[#666] text-xs transition-colors">Manage →</span>
-        </Link>
+          <span className="text-green-400 text-xs font-medium">View &amp; manage →</span>
+        </button>
       </div>
     </div>
   );
@@ -475,6 +477,7 @@ export default function ClientsPage() {
   const [clients, setClients] = useState<Client[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newClient, setNewClient] = useState<Omit<Client, "id">>(EMPTY_CLIENT);
+  const [portalClientId, setPortalClientId] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -533,6 +536,16 @@ export default function ClientsPage() {
   };
 
   const totalRevenue = clients.reduce((s, c) => s + effectiveRate(c), 0);
+
+  // When a portal is open, render the portal management inline (replaces the grid)
+  if (portalClientId && isAdmin) {
+    return (
+      <PortalManagement
+        clientId={portalClientId}
+        onClose={() => setPortalClientId(null)}
+      />
+    );
+  }
 
   return (
     <div className="space-y-8 fade-in">
@@ -749,6 +762,7 @@ export default function ClientsPage() {
               readonly={!isAdmin}
               onUpdate={(updated) => save(clients.map(c => c.id === updated.id ? updated : c))}
               onDelete={(id) => save(clients.filter(c => c.id !== id))}
+              onOpenPortal={(id) => setPortalClientId(id)}
             />
           ))}
         </div>
