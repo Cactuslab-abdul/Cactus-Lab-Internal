@@ -927,9 +927,7 @@ export default function PortalAdminPage() {
     }
   }, [slug]);
 
-  if (!isAdmin) return null;
-
-  if (loading || !slug) {
+  if (roleLoading || loading || !slug) {
     return (
       <div className="space-y-4 fade-in">
         <div className="h-10 skeleton rounded-xl w-48" />
@@ -938,6 +936,8 @@ export default function PortalAdminPage() {
       </div>
     );
   }
+
+  if (!isAdmin) return null;
 
   if (!data) {
     return (
