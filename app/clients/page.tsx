@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
-  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight,
+  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 
@@ -451,6 +452,20 @@ function ClientCard({
           <p className="text-[#666] text-sm">{client.notes}</p>
         </div>
       )}
+
+      {/* Portal link */}
+      <div className="border-t border-[#1a1a1a] pt-4">
+        <Link
+          href={`/clients/portal/${client.id}`}
+          className="flex items-center justify-between gap-2 bg-[#1a1a1a] hover:bg-[#1e1e1e] border border-[#2a2a2a] hover:border-green-500/20 rounded-xl px-4 py-3 transition-all group"
+        >
+          <div className="flex items-center gap-2.5">
+            <LayoutDashboard className="w-4 h-4 text-green-400 flex-shrink-0" />
+            <span className="text-white text-sm font-medium">Client Portal</span>
+          </div>
+          <span className="text-[#444] group-hover:text-[#666] text-xs transition-colors">Manage →</span>
+        </Link>
+      </div>
     </div>
   );
 }
