@@ -9,6 +9,8 @@ export type UserRole = "admin" | "editor";
 const ADMIN_EMAILS = [
   "awab.sirelkhatim@gmail.com",
   "abdul.ahmed.eg@gmail.com",
+  "abdulrahman@cactuslab.ae",
+  "awab@cactuslab.ae",
 ];
 
 export function isAdminEmail(email: string | undefined): boolean {
