@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { TrendingUp, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
+import { syncLoad, syncSave } from "@/lib/sync";
 
 interface GrowthEntry {
   date: string;
@@ -271,12 +272,22 @@ export default function GrowthTrackerPage() {
       if (c.platforms.length > 0) ap[c.id] = c.platforms[0].platform;
     });
     setActivePlatform(ap);
+
+    // 5. Supabase override for cross-device sync
+    syncLoad<GrowthClient[]>("cactus-growth-clients", growthClients).then(synced => {
+      const newAp: Record<string, string> = {};
+      synced.forEach((c) => { if (c.platforms.length > 0) newAp[c.id] = c.platforms[0].platform; });
+      setClients(synced);
+      setActivePlatform(newAp);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+    });
   }, []);
 
   // ── Persist helpers ───────────────────────────────────────────────────────
   function save(updated: GrowthClient[]) {
     setClients(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    syncSave("cactus-growth-clients", updated);
   }
 
   function getActivePlatformData(client: GrowthClient): PlatformTracker | null {

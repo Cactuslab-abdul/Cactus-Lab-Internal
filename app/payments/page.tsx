@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { CreditCard, Plus, X, CheckCircle2, Clock, Mail, Send } from "lucide-react";
+import { syncLoad, syncSave } from "@/lib/sync";
 
 interface Payment {
   id: string;
@@ -47,10 +48,15 @@ export default function PaymentsPage() {
   });
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setPayments(JSON.parse(raw));
-    } catch {}
+    const localPayments = (() => {
+      try { return JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "null") ?? []; } catch { return []; }
+    })();
+    setPayments(localPayments);
+    syncLoad<Payment[]>("cactus-payments", localPayments).then(synced => {
+      setPayments(synced);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+    });
+
     try {
       const raw = localStorage.getItem("cactus-clients");
       if (raw) {
@@ -63,10 +69,11 @@ export default function PaymentsPage() {
     setCcEmail(savedCc);
   }, []);
 
-  const save = (updated: Payment[]) => {
+  const save = useCallback((updated: Payment[]) => {
     setPayments(updated);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  };
+    syncSave("cactus-payments", updated);
+  }, []);
 
   const handleClientSelect = (clientId: string) => {
     const client = savedClients.find(c => c.id === clientId);
