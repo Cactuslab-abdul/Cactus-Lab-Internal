@@ -11,6 +11,7 @@ const ADMIN_EMAILS = [
   "abdul.ahmed.eg@gmail.com",
   "abdulrahman@cactuslab.ae",
   "awab@cactuslab.ae",
+  "hello@cactuslab.ae",
 ];
 
 export function isAdminEmail(email: string | undefined): boolean {
