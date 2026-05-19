@@ -85,7 +85,7 @@ interface UserProfile {
   imgError: boolean;
 }
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = false, onClose }: { isOpen?: boolean; onClose?: () => void }) {
   const pathname = usePathname();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -170,7 +170,7 @@ export default function Sidebar() {
   const showImg = user?.avatarUrl && !user?.imgError;
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-64 bg-[#111111] border-r border-[#1e1e1e] flex flex-col z-50 overflow-y-auto">
+    <aside className={`fixed left-0 top-0 h-full w-64 bg-[#111111] border-r border-[#1e1e1e] flex flex-col z-50 overflow-y-auto transform transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}>
       {/* Logo */}
       <div className="p-5 border-b border-[#1e1e1e] flex-shrink-0">
         <div className="flex items-center gap-3">
@@ -197,6 +197,7 @@ export default function Sidebar() {
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => onClose?.()}
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150 ${
                       isActive
                         ? "bg-green-500/10 text-green-400 border border-green-500/20"

@@ -331,13 +331,13 @@ export default function Dashboard() {
     <div className="space-y-8 fade-in">
 
       {/* ── Header with team strip ─────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-6">
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-6">
         <div>
           <h1 className="text-white text-2xl font-bold">{greeting}, {currentUserName}</h1>
           <p className="text-[#666] mt-1">{todayLabel}</p>
         </div>
 
-        {/* Team strip — right of header */}
+        {/* Team strip */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {team.map((member) => {
             const online = !!(member.email && onlineEmails.has(member.email));
@@ -443,7 +443,7 @@ export default function Dashboard() {
             Add member
           </button>
         </div>
-        <div className="flex flex-wrap gap-4">
+        <div className="flex gap-4 overflow-x-auto pb-1">
           {team.map(member => (
             <TeamCard
               key={member.id}
