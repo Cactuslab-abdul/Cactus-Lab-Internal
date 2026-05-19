@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { syncLoad, syncSave } from "@/lib/sync";
 import {
   AlertCircle,
   Download,
@@ -71,19 +72,30 @@ export default function PipelinePage() {
   const [form, setForm] = useState({ name: "", niche: "", platform: "", followup: "", note: "" });
 
   useEffect(() => {
+    // Read localStorage immediately for fast render
+    let localLeads: Lead[] = DEFAULT_LEADS;
     const raw = localStorage.getItem("cactus-leads");
     const rawId = localStorage.getItem("cactus-leads-nextid");
     const rawClients = localStorage.getItem("cactus-clients");
     if (raw) {
-      try { setLeads(JSON.parse(raw)); } catch {}
+      try { localLeads = JSON.parse(raw); } catch {}
     } else {
-      setLeads(DEFAULT_LEADS);
       localStorage.setItem("cactus-leads", JSON.stringify(DEFAULT_LEADS));
     }
+    setLeads(localLeads);
     if (rawId) setNextId(parseInt(rawId, 10));
     if (rawClients) {
       try { setClients(JSON.parse(rawClients)); } catch {}
     }
+
+    // Then sync from Supabase Storage (canonical source)
+    syncLoad<Lead[]>("leads", localLeads).then(synced => {
+      setLeads(synced);
+      localStorage.setItem("cactus-leads", JSON.stringify(synced));
+    });
+    syncLoad<Client[]>("clients", []).then(synced => {
+      if (synced.length > 0) setClients(synced);
+    });
   }, []);
 
   const save = useCallback((updatedLeads: Lead[], updatedNextId?: number) => {
@@ -91,6 +103,7 @@ export default function PipelinePage() {
     if (updatedNextId !== undefined) {
       localStorage.setItem("cactus-leads-nextid", String(updatedNextId));
     }
+    syncSave("leads", updatedLeads);
   }, []);
 
   const addLead = () => {

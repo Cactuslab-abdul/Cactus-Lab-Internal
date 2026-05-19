@@ -18,6 +18,7 @@ import {
   Camera,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { syncLoad } from "@/lib/sync";
 
 interface Client {
   id: string;
@@ -80,6 +81,7 @@ function getNicheColor(niche?: string) {
   if (n.includes("perfume") || n.includes("watch")) return "bg-purple-500/15 text-purple-400";
   if (n.includes("car")) return "bg-blue-500/15 text-blue-400";
   if (n.includes("recruit")) return "bg-yellow-500/15 text-yellow-400";
+  if (n.includes("real estate") || n.includes("construction")) return "bg-amber-500/15 text-amber-400";
   return "bg-[#222] text-[#888]";
 }
 
@@ -242,6 +244,22 @@ export default function Dashboard() {
       const meta = user.user_metadata || {};
       const name = meta.full_name || meta.name || user.email?.split("@")[0] || "there";
       setCurrentUserName(name.split(" ")[0]);
+
+      // Pull latest data from Supabase Storage (overwrites stale localStorage)
+      syncLoad<Client[]>("clients", []).then(synced => {
+        if (synced.length > 0) {
+          setClients(synced);
+          localStorage.setItem("cactus-clients", JSON.stringify(synced));
+        }
+      });
+      syncLoad<Lead[]>("leads", []).then(synced => {
+        setLeads(synced);
+        localStorage.setItem("cactus-leads", JSON.stringify(synced));
+      });
+      syncLoad<Stats>("stats", {}).then(synced => {
+        setStats(synced);
+        localStorage.setItem("cactus-stats", JSON.stringify(synced));
+      });
 
       presenceChannel = supabase.channel("os-presence");
       presenceChannel

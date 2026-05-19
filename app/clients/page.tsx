@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { syncLoad, syncSave } from "@/lib/sync";
 import {
   Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard,
 } from "lucide-react";
@@ -70,7 +71,33 @@ const EMPTY_CLIENT: Omit<Client, "id"> = {
   invoiceNotes: "",
 };
 
-const DEFAULT_CLIENTS: Client[] = [{
+const DEFAULT_CLIENTS: Client[] = [
+{
+  id: "crystalline",
+  name: "Crystalline",
+  logoUrl: "",
+  niche: "Real Estate & Construction",
+  package: "Full Social Media Management",
+  retainerAED: 3000,
+  discountedRate: 0,
+  fullRateDate: "",
+  services: "15 short-form videos/month\nFull social media management\nNo on-camera client requirement\nContent strategy & planning",
+  contactName: "",
+  contactEmail: "",
+  contactWhatsApp: "",
+  contactInstagram: "",
+  startDate: "2026-05-18",
+  notes: "",
+  billToCompany: "",
+  billToAddress: "",
+  billToTrn: "",
+  invoiceEmails: "",
+  invoiceCc: "",
+  invoicePrefix: "CL",
+  invoiceDesc: "Content Creation & Marketing Package",
+  invoiceNotes: "",
+},
+{
   id: "pets-delight",
   name: "Pets Delight",
   logoUrl: "/logo-pets-delight.jpg",
@@ -92,7 +119,8 @@ const DEFAULT_CLIENTS: Client[] = [{
   invoicePrefix: "PD",
   invoiceDesc: "Content Creation & Marketing Package",
   invoiceNotes: "18 videos including scripting, shooting, editing, and delivery\n8 LinkedIn posts\n15 stories\ncommunity management",
-}];
+},
+];
 
 function isOnDiscount(client: Client): boolean {
   return !!(
@@ -479,52 +507,65 @@ export default function ClientsPage() {
   const [newClient, setNewClient] = useState<Omit<Client, "id">>(EMPTY_CLIENT);
   const [portalClientId, setPortalClientId] = useState<string | null>(null);
 
+  function migrateClients(parsed: Client[]): Client[] {
+    return parsed.map((c: Client) => {
+      const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
+      if (defaults) {
+        const isPetsDelightStale = c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "");
+        return {
+          ...c,
+          invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
+          discountedRate: c.discountedRate ?? defaults.discountedRate,
+          fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
+          invoiceCc: c.invoiceCc ?? defaults.invoiceCc,
+          ...(isPetsDelightStale ? {
+            contactName: defaults.contactName,
+            contactEmail: defaults.contactEmail,
+            invoiceEmails: defaults.invoiceEmails,
+            invoiceCc: defaults.invoiceCc,
+          } : {}),
+        };
+      }
+      return {
+        ...c,
+        invoicePrefix: c.invoicePrefix ?? "",
+        invoiceCc: c.invoiceCc ?? "",
+        discountedRate: c.discountedRate ?? 0,
+        fullRateDate: c.fullRateDate ?? "",
+        invoiceNotes: c.invoiceNotes ?? "",
+      };
+    });
+  }
+
   useEffect(() => {
+    // Immediate render from localStorage
+    let localClients: Client[] = DEFAULT_CLIENTS;
     try {
       const raw = localStorage.getItem("cactus-clients");
       if (raw) {
         const parsed = JSON.parse(raw);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const migrated = parsed.map((c: Client) => {
-            const defaults = DEFAULT_CLIENTS.find(d => d.id === c.id);
-            if (defaults) {
-              const isPetsDelightStale = c.id === "pets-delight" && (c.contactName === "Raveena" || c.contactName === "");
-              return {
-                ...c,
-                invoicePrefix: c.invoicePrefix ?? defaults.invoicePrefix,
-                discountedRate: c.discountedRate ?? defaults.discountedRate,
-                fullRateDate: c.fullRateDate ?? defaults.fullRateDate,
-                invoiceCc: c.invoiceCc ?? defaults.invoiceCc,
-                ...(isPetsDelightStale ? {
-                  contactName: defaults.contactName,
-                  contactEmail: defaults.contactEmail,
-                  invoiceEmails: defaults.invoiceEmails,
-                  invoiceCc: defaults.invoiceCc,
-                } : {}),
-              };
-            }
-            return {
-              ...c,
-              invoicePrefix: c.invoicePrefix ?? "",
-              invoiceCc: c.invoiceCc ?? "",
-              discountedRate: c.discountedRate ?? 0,
-              fullRateDate: c.fullRateDate ?? "",
-              invoiceNotes: c.invoiceNotes ?? "",
-            };
-          });
-          setClients(migrated);
-          localStorage.setItem("cactus-clients", JSON.stringify(migrated));
-          return;
+          localClients = migrateClients(parsed);
         }
       }
     } catch {}
-    setClients(DEFAULT_CLIENTS);
-    localStorage.setItem("cactus-clients", JSON.stringify(DEFAULT_CLIENTS));
+    setClients(localClients);
+    localStorage.setItem("cactus-clients", JSON.stringify(localClients));
+
+    // Then sync from Supabase Storage (canonical source)
+    syncLoad<Client[]>("clients", localClients).then(synced => {
+      if (synced.length > 0) {
+        const migrated = migrateClients(synced);
+        setClients(migrated);
+        localStorage.setItem("cactus-clients", JSON.stringify(migrated));
+      }
+    });
   }, []);
 
   const save = (updated: Client[]) => {
     setClients(updated);
     localStorage.setItem("cactus-clients", JSON.stringify(updated));
+    syncSave("clients", updated);
   };
 
   const handleAdd = () => {
