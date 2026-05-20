@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
-import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { CLIENT_EMAIL_MAP } from "@/lib/portal-auth";
 import { PORTAL_SEEDS } from "@/lib/portal-seed";
+import { adminStorageClient } from "@/lib/portal-merge";
 import type { PortalData, ContentStatus } from "@/lib/portal-types";
 
 type Action = "approve" | "revise";
+type AdminClient = ReturnType<typeof adminStorageClient>;
 
-async function slugForAuthedEmail(email: string, admin: ReturnType<typeof createAdminSupabase>): Promise<string | null> {
+async function slugForAuthedEmail(email: string, admin: AdminClient): Promise<string | null> {
   const key = email.toLowerCase().trim();
   if (CLIENT_EMAIL_MAP[key]) return CLIENT_EMAIL_MAP[key];
   try {
@@ -43,11 +44,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const admin = createAdminSupabase(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  );
+  const admin = adminStorageClient();
 
   const userSlug = await slugForAuthedEmail(user.email, admin);
   if (!userSlug || userSlug !== slug) {

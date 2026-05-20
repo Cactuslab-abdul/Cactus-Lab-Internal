@@ -6,7 +6,6 @@
 // regardless of whether the portal blob has stale copies.
 
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PortalData } from "./portal-types";
 
 export function adminStorageClient() {
@@ -16,6 +15,8 @@ export function adminStorageClient() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 }
+
+type AdminClient = ReturnType<typeof adminStorageClient>;
 
 interface ClientRecord {
   id: string;
@@ -32,9 +33,9 @@ interface ClientRecord {
   startDate: string;
 }
 
-export async function loadClientRecord(supabase: SupabaseClient, slug: string): Promise<ClientRecord | null> {
+export async function loadClientRecord(admin: AdminClient, slug: string): Promise<ClientRecord | null> {
   try {
-    const { data, error } = await supabase.storage.from("app-data").download("clients.json");
+    const { data, error } = await admin.storage.from("app-data").download("clients.json");
     if (error || !data) return null;
     const list = JSON.parse(await data.text()) as ClientRecord[];
     return list.find(c => c.id === slug) ?? null;
