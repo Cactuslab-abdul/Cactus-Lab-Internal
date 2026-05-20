@@ -565,10 +565,12 @@ export default function InvoicesPage() {
                   <span style={{ color: "#dc2626" }}>-{aed(discAmt)}</span>
                 </div>
               )}
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
-                <span style={{ color: "#6b7280" }}>Tax ({invoiceData.vatRate}%)</span>
-                <span>{aed(vatAmt)}</span>
-              </div>
+              {invoiceData.vatRate > 0 && (
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, padding: "5px 0" }}>
+                  <span style={{ color: "#6b7280" }}>Tax ({invoiceData.vatRate}%)</span>
+                  <span>{aed(vatAmt)}</span>
+                </div>
+              )}
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: 17, fontWeight: 700, padding: "10px 0 5px", borderTop: "1.5px solid #111", marginTop: 6 }}>
                 <span style={{ color: "#111" }}>Total</span>
                 <span>{aed(discountedSub + vatAmt)}</span>
@@ -973,19 +975,21 @@ export default function InvoicesPage() {
                     className="w-24 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-1.5 py-0.5 text-xs text-white text-right focus:outline-none focus:border-green-500/50"
                   />
                 </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-[#666] flex items-center gap-1">
-                    Tax (
-                    <input
-                      type="number"
-                      value={form.vatRate}
-                      onChange={e => setForm(f => ({ ...f, vatRate: parseFloat(e.target.value) || 0 }))}
-                      className="w-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-1.5 py-0.5 text-xs text-white text-center focus:outline-none focus:border-green-500/50"
-                    />
-                    %)
-                  </span>
-                  <span className="text-white">{aed(vat)}</span>
-                </div>
+                {form.vatRate > 0 && (
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-[#666] flex items-center gap-1">
+                      Tax (
+                      <input
+                        type="number"
+                        value={form.vatRate}
+                        onChange={e => setForm(f => ({ ...f, vatRate: parseFloat(e.target.value) || 0 }))}
+                        className="w-12 bg-[#1a1a1a] border border-[#2a2a2a] rounded px-1.5 py-0.5 text-xs text-white text-center focus:outline-none focus:border-green-500/50"
+                      />
+                      %)
+                    </span>
+                    <span className="text-white">{aed(vat)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-base font-bold border-t border-[#2a2a2a] pt-2">
                   <span className="text-white">Total</span>
                   <span className="text-white">{aed(total)}</span>

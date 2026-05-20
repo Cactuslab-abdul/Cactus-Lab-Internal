@@ -561,7 +561,7 @@ function InvoicesSection({ invoices }: { invoices: PortalInvoice[] }) {
             </div>
             <div className="text-right flex-shrink-0">
               <p className="text-white text-sm font-bold">{aed(inv.totalAED)}</p>
-              <p className="text-[#555] text-xs">incl. 5% VAT</p>
+              {inv.vatAED > 0 && <p className="text-[#555] text-xs">incl. VAT</p>}
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               {statusBadge(inv.status)}

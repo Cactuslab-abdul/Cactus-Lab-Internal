@@ -463,8 +463,8 @@ function InvoicesTab({ data, onChange }: { data: PortalData; onChange: (d: Porta
     date: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`,
     dueDate: `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-05`,
     amountAED: data.package.retainerAED,
-    vatAED: Math.round(data.package.retainerAED * 0.05),
-    totalAED: Math.round(data.package.retainerAED * 1.05),
+    vatAED: 0,
+    totalAED: data.package.retainerAED,
     status: "pending",
     pdfUrl: "",
     paidDate: "",
@@ -533,20 +533,16 @@ function InvoicesTab({ data, onChange }: { data: PortalData; onChange: (d: Porta
               <input type="date" value={form.dueDate} onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))} className={inputCls()} />
             </div>
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Amount (AED excl. VAT)</label>
+              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Amount (AED)</label>
               <input
                 type="number"
                 value={form.amountAED}
                 onChange={e => {
                   const amt = Number(e.target.value);
-                  setForm(f => ({ ...f, amountAED: amt, vatAED: Math.round(amt * 0.05), totalAED: Math.round(amt * 1.05) }));
+                  setForm(f => ({ ...f, amountAED: amt, vatAED: 0, totalAED: amt }));
                 }}
                 className={inputCls()}
               />
-            </div>
-            <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Total incl. 5% VAT</label>
-              <input value={`AED ${form.totalAED.toLocaleString()}`} readOnly className={`${inputCls()} opacity-50 cursor-default`} />
             </div>
             <div>
               <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Status</label>
@@ -583,7 +579,7 @@ function InvoicesTab({ data, onChange }: { data: PortalData; onChange: (d: Porta
                 <p className="text-white text-sm font-medium">{inv.month}</p>
                 <span className="text-[#444] text-xs font-mono">{inv.number}</span>
               </div>
-              <p className="text-[#555] text-xs mt-0.5">AED {inv.totalAED.toLocaleString()} incl. VAT</p>
+              <p className="text-[#555] text-xs mt-0.5">AED {inv.totalAED.toLocaleString()}</p>
             </div>
             <div className="flex items-center gap-2 flex-shrink-0">
               <select
