@@ -7,6 +7,7 @@ export type UserRole = "admin" | "editor";
 
 // These emails always get full admin access regardless of user_metadata
 const ADMIN_EMAILS = [
+  "abdulrahman@cactuslab.ae",
   "awab.sirelkhatim@gmail.com",
   "abdul.ahmed.eg@gmail.com",
   "abdulrahman@cactuslab.ae",

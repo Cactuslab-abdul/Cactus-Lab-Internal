@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { syncLoad, syncSave } from "@/lib/sync";
 import {
-  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard,
+  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard, Upload,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 import PortalManagement from "@/components/portal-management";
+import { createClient } from "@/lib/supabase/client";
 
 const NICHES = [
   "Pets & Pet Products",
@@ -150,6 +151,77 @@ function formatDate(d: string) {
   return new Date(d + "T00:00:00").toLocaleDateString("en-AE", { month: "long", year: "numeric" });
 }
 
+function LogoUploader({ currentUrl, clientName, onChange }: { currentUrl: string; clientName: string; onChange: (url: string) => void }) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const slug = (clientName || "client").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "client";
+
+  const handleSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const ext = (file.name.split(".").pop() || "png").toLowerCase();
+    const path = `clients/${slug}-${Date.now()}.${ext}`;
+    const supabase = createClient();
+    setUploading(true);
+    try {
+      const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true, contentType: file.type });
+      if (error) throw error;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      onChange(`${publicUrl}?t=${Date.now()}`);
+    } catch (err) {
+      console.error("Logo upload failed:", err);
+      alert("Upload failed. Check that the 'avatars' bucket exists in Supabase and is public.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  return (
+    <div>
+      <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Logo</span>
+      <div className="mt-1 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="relative group flex-shrink-0"
+          title="Click to upload logo"
+        >
+          {currentUrl ? (
+            <img src={currentUrl} alt="" className="w-14 h-14 rounded-xl object-cover ring-1 ring-[#2a2a2a] group-hover:ring-green-500/50 transition-all" />
+          ) : (
+            <div className="w-14 h-14 rounded-xl bg-[#1a1a1a] border border-dashed border-[#2a2a2a] flex items-center justify-center text-[#555] group-hover:border-green-500/50 transition-all">
+              <Upload className="w-4 h-4" />
+            </div>
+          )}
+          <div className="absolute inset-0 rounded-xl bg-black/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            {uploading
+              ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              : <Upload className="w-4 h-4 text-white" />}
+          </div>
+        </button>
+        <div className="flex flex-col gap-1 text-xs">
+          <span className="text-[#666]">PNG, JPG, or WEBP</span>
+          {currentUrl && (
+            <button type="button" onClick={() => onChange("")} className="text-left text-[#666] hover:text-red-400 transition-colors">
+              Remove
+            </button>
+          )}
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          onChange={handleSelect}
+        />
+      </div>
+    </div>
+  );
+}
+
 function ClientLogo({ name, logoUrl, size = "lg" }: { name: string; logoUrl: string; size?: "sm" | "lg" }) {
   const dim = size === "lg" ? "w-16 h-16" : "w-10 h-10";
   const textSize = size === "lg" ? "text-2xl" : "text-sm";
@@ -215,12 +287,11 @@ function ClientCard({
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
             </label>
-            <label className="block">
-              <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Logo URL</span>
-              <input value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))}
-                placeholder="https://... or /logo-pets-delight.jpg"
-                className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
-            </label>
+            <LogoUploader
+              currentUrl={form.logoUrl}
+              clientName={form.name}
+              onChange={url => setForm(f => ({ ...f, logoUrl: url }))}
+            />
             <label className="block">
               <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Niche</span>
               <select value={form.niche} onChange={e => setForm(f => ({ ...f, niche: e.target.value }))}
@@ -628,12 +699,11 @@ export default function ClientsPage() {
                   placeholder="e.g. Pets Delight"
                   className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
               </label>
-              <label className="block">
-                <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Logo URL</span>
-                <input value={newClient.logoUrl} onChange={e => setNewClient(p => ({ ...p, logoUrl: e.target.value }))}
-                  placeholder="Paste image URL"
-                  className="mt-1 w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
-              </label>
+              <LogoUploader
+                currentUrl={newClient.logoUrl}
+                clientName={newClient.name}
+                onChange={url => setNewClient(p => ({ ...p, logoUrl: url }))}
+              />
               <label className="block">
                 <span className="text-[#666] text-xs uppercase tracking-wide font-medium">Niche</span>
                 <select value={newClient.niche} onChange={e => setNewClient(p => ({ ...p, niche: e.target.value }))}
