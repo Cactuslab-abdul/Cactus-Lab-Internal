@@ -6,7 +6,7 @@ import {
   CheckCircle2, Clock, AlertCircle, PlayCircle, Star, ExternalLink,
   TrendingUp, Users, Eye, Activity, FileText, Package,
   ChevronUp, ChevronDown, MessageCircle, Check, X, RotateCcw,
-  CalendarDays, BadgeCheck, Loader2, LogOut,
+  CalendarDays, BadgeCheck, Loader2, LogOut, Copy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import type { PortalData, ContentItem, ContentStatus, AnalyticsWeek, PortalInvoice } from "@/lib/portal-types";
@@ -33,6 +33,11 @@ function formatWeek(iso: string) {
 
 function aed(n: number) {
   return `AED ${n.toLocaleString("en-AE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+}
+
+function toDrivePreview(url: string): string | null {
+  const m = url.match(/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? `https://drive.google.com/file/d/${m[1]}/preview` : null;
 }
 
 function monthsActive(startDate: string) {
@@ -108,6 +113,34 @@ function whatsappRevision(phone: string, item: ContentItem, note: string) {
 
 function Skeleton({ className }: { className?: string }) {
   return <div className={`skeleton rounded-xl ${className ?? ""}`} />;
+}
+
+function CaptionBlock({ caption }: { caption: string }) {
+  const [copied, setCopied] = useState(false);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(caption);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  };
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[#555] text-xs uppercase tracking-wide font-medium">Caption</p>
+        <button
+          onClick={handleCopy}
+          className="inline-flex items-center gap-1.5 text-[#666] hover:text-purple-400 text-xs transition-colors"
+        >
+          {copied ? <Check className="w-3 h-3 text-green-400" /> : <Copy className="w-3 h-3" />}
+          {copied ? "Copied" : "Copy"}
+        </button>
+      </div>
+      <div className="bg-[#0d0d0d] border border-[#1a1a1a] rounded-xl px-4 py-3 text-[#ccc] text-sm whitespace-pre-wrap leading-relaxed">
+        {caption}
+      </div>
+    </div>
+  );
 }
 
 function StatusBadge({ status }: { status: ContentStatus }) {
@@ -241,17 +274,44 @@ function ContentCard({ item, agencyPhone }: { item: ContentItem; agencyPhone: st
             {item.status === "ready_for_review" && item.videoUrl && (
               <div>
                 <p className="text-[#555] text-xs uppercase tracking-wide font-medium mb-2">Video</p>
-                <a
-                  href={item.videoUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 bg-purple-500/5 border border-purple-500/15 rounded-xl px-4 py-3 text-purple-400 hover:text-purple-300 text-sm transition-colors"
-                >
-                  <PlayCircle className="w-4 h-4 flex-shrink-0" />
-                  Watch the video
-                  <ExternalLink className="w-3.5 h-3.5 ml-auto flex-shrink-0" />
-                </a>
+                {toDrivePreview(item.videoUrl) ? (
+                  <div className="space-y-2">
+                    <div className="rounded-xl overflow-hidden bg-black border border-purple-500/15 max-w-sm">
+                      <iframe
+                        src={toDrivePreview(item.videoUrl)!}
+                        className="w-full aspect-[9/16]"
+                        allow="autoplay; fullscreen"
+                        allowFullScreen
+                      />
+                    </div>
+                    <a
+                      href={item.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-[#666] hover:text-purple-400 text-xs transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      Open in new tab
+                    </a>
+                  </div>
+                ) : (
+                  <a
+                    href={item.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 bg-purple-500/5 border border-purple-500/15 rounded-xl px-4 py-3 text-purple-400 hover:text-purple-300 text-sm transition-colors"
+                  >
+                    <PlayCircle className="w-4 h-4 flex-shrink-0" />
+                    Watch the video
+                    <ExternalLink className="w-3.5 h-3.5 ml-auto flex-shrink-0" />
+                  </a>
+                )}
               </div>
+            )}
+
+            {/* Caption — visible alongside video for review, and kept for reference after */}
+            {(item.status === "ready_for_review" || item.status === "client_approved" || item.status === "posted") && item.caption && (
+              <CaptionBlock caption={item.caption} />
             )}
 
             {/* Posted link */}

@@ -20,6 +20,7 @@ export interface ContentItem {
   videoUrl?: string;
   thumbnailUrl?: string;
   postedUrl?: string;
+  caption?: string;
   clientNote?: string;
   createdAt: string;
   updatedAt: string;

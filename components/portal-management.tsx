@@ -67,6 +67,7 @@ function ContentTab({ data, onChange }: { data: PortalData; onChange: (d: Portal
     videoUrl: "",
     thumbnailUrl: "",
     postedUrl: "",
+    caption: "",
     clientNote: "",
   });
 
@@ -196,6 +197,10 @@ function ContentTab({ data, onChange }: { data: PortalData; onChange: (d: Portal
               <input value={newItem.postedUrl ?? ""} onChange={e => setNewItem(p => ({ ...p, postedUrl: e.target.value }))} placeholder="instagram.com/p/..." className={inputCls()} />
             </div>
           </div>
+          <div>
+            <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Caption (for client approval)</label>
+            <textarea value={newItem.caption ?? ""} onChange={e => setNewItem(p => ({ ...p, caption: e.target.value }))} rows={4} placeholder="The caption that will be posted with the video — hashtags, copy, mentions" className={inputCls("resize-none")} />
+          </div>
           <div className="flex gap-3 pt-1">
             <button onClick={addItem} disabled={!newItem.title.trim()} className="bg-green-500 hover:bg-green-400 disabled:opacity-40 text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-colors">Add Item</button>
             <button onClick={() => setAddingItem(false)} className="bg-[#1a1a1a] border border-[#2a2a2a] text-white font-medium px-5 py-2.5 rounded-xl text-sm">Cancel</button>
@@ -280,6 +285,10 @@ function ContentItemRow({
             <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Posted URL</label>
             <input value={form.postedUrl ?? ""} onChange={e => setForm(f => ({ ...f, postedUrl: e.target.value }))} placeholder="instagram.com/p/..." className={inputCls()} />
           </div>
+        </div>
+        <div>
+          <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Caption (for client approval)</label>
+          <textarea value={form.caption ?? ""} onChange={e => setForm(f => ({ ...f, caption: e.target.value }))} rows={4} placeholder="The caption that will be posted with the video — hashtags, copy, mentions" className={inputCls("resize-none")} />
         </div>
         <div>
           <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Note (if revision)</label>

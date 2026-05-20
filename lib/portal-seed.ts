@@ -5,7 +5,7 @@ export const PORTAL_SEEDS: Record<string, PortalData> = {
     clientId: "pets-delight",
     clientName: "Pets Delight",
     logoUrl: "/logo-pets-delight.jpg",
-    agencyWhatsApp: "+971501234567",
+    agencyWhatsApp: "+971 52 256 0115",
     monthlyVideoQuota: 18,
     package: {
       name: "Full Social Media Management",
@@ -21,7 +21,7 @@ export const PORTAL_SEEDS: Record<string, PortalData> = {
       startDate: "2026-03-01",
       contractMonths: 3,
       primaryContactName: "Awab Sirelkhatim",
-      primaryContactWhatsApp: "+971501234567",
+      primaryContactWhatsApp: "+971 52 256 0115",
       primaryContactEmail: "awab.sirelkhatim@gmail.com",
     },
     contentItems: [
@@ -250,7 +250,7 @@ export const PORTAL_SEEDS: Record<string, PortalData> = {
     clientId: "crystalline",
     clientName: "Crystalline",
     logoUrl: "",
-    agencyWhatsApp: "+971501234567",
+    agencyWhatsApp: "+971 52 256 0115",
     monthlyVideoQuota: 15,
     package: {
       name: "Full Social Media Management",
@@ -264,7 +264,7 @@ export const PORTAL_SEEDS: Record<string, PortalData> = {
       startDate: "2026-05-18",
       contractMonths: 3,
       primaryContactName: "Awab Sirelkhatim",
-      primaryContactWhatsApp: "+971501234567",
+      primaryContactWhatsApp: "+971 52 256 0115",
       primaryContactEmail: "awab.sirelkhatim@gmail.com",
     },
     contentItems: [

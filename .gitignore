@@ -11,6 +11,7 @@ next-env.d.ts
 # Env — never commit secrets
 .env.local
 .env*.local
+.env.local.bak*
 
 # Large media files — store separately, not in git
 *.mp4
