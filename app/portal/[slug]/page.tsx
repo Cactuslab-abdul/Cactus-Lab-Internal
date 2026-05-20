@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import {
   CheckCircle2, Clock, AlertCircle, PlayCircle, Star, ExternalLink,
   TrendingUp, Users, Eye, Activity, FileText, Package,
-  ChevronUp, ChevronDown, MessageCircle, Check, X, RotateCcw,
+  ChevronUp, ChevronDown, Check, X, RotateCcw,
   CalendarDays, BadgeCheck, Loader2, LogOut, Copy,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -93,20 +93,19 @@ const STATUS_CONFIG: Record<ContentStatus, { label: string; color: string; icon:
   },
 };
 
-// ─── WhatsApp helpers ────────────────────────────────────────────────────────
+// ─── Approve / revise API helper ─────────────────────────────────────────────
 
-function whatsappApprove(phone: string, item: ContentItem) {
-  const msg = encodeURIComponent(
-    `Hi Awab! I'm approving ${item.status === "idea_pending" ? "the idea" : "the video"} for #${item.number}: "${item.title}". Great work! ✅`
-  );
-  window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
-}
-
-function whatsappRevision(phone: string, item: ContentItem, note: string) {
-  const msg = encodeURIComponent(
-    `Hi Awab! I'd like to request a revision on #${item.number}: "${item.title}".\n\nMy feedback: ${note}`
-  );
-  window.open(`https://wa.me/${phone.replace(/\D/g, "")}?text=${msg}`, "_blank");
+async function submitApproval(slug: string, itemId: string, action: "approve" | "revise", note?: string) {
+  const res = await fetch(`/api/portal/${slug}/approve`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ itemId, action, note }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Request failed (${res.status})`);
+  }
+  return (await res.json()) as { ok: true; item: ContentItem };
 }
 
 // ─── Components ─────────────────────────────────────────────────────────────
@@ -155,24 +154,34 @@ function StatusBadge({ status }: { status: ContentStatus }) {
 
 function RevisionModal({
   item,
-  agencyPhone,
+  onSubmit,
   onClose,
 }: {
   item: ContentItem;
-  agencyPhone: string;
+  onSubmit: (note: string) => Promise<void>;
   onClose: () => void;
 }) {
   const [note, setNote] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     textareaRef.current?.focus();
   }, []);
 
-  const submit = () => {
-    if (!note.trim()) return;
-    whatsappRevision(agencyPhone, item, note.trim());
-    onClose();
+  const submit = async () => {
+    if (!note.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await onSubmit(note.trim());
+      onClose();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't send revision request.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -201,28 +210,50 @@ function RevisionModal({
             className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-xl px-4 py-3 text-white text-sm placeholder-[#444] focus:border-[#444] outline-none resize-none"
           />
         </div>
+        {error && <p className="text-red-400 text-xs">{error}</p>}
         <div className="flex gap-3">
           <button
             onClick={submit}
-            disabled={!note.trim()}
-            className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] hover:border-green-500/40 disabled:opacity-40 text-white font-medium py-2.5 rounded-xl text-sm transition-all"
+            disabled={!note.trim() || submitting}
+            className="flex-1 flex items-center justify-center gap-2 bg-red-500/10 border border-red-500/30 hover:border-red-500/50 disabled:opacity-40 text-red-400 font-medium py-2.5 rounded-xl text-sm transition-all"
           >
-            <MessageCircle className="w-4 h-4 text-green-400" />
-            Send via WhatsApp
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RotateCcw className="w-4 h-4" />}
+            {submitting ? "Sending…" : "Send Revision Request"}
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 text-[#666] hover:text-white text-sm transition-colors">Cancel</button>
+          <button onClick={onClose} disabled={submitting} className="px-4 py-2.5 text-[#666] hover:text-white text-sm transition-colors disabled:opacity-40">Cancel</button>
         </div>
-        <p className="text-[#444] text-xs text-center">This will open WhatsApp with your feedback pre-filled</p>
+        <p className="text-[#444] text-xs text-center">Your feedback will be sent to the Cactus Lab team.</p>
       </div>
     </div>
   );
 }
 
-function ContentCard({ item, agencyPhone }: { item: ContentItem; agencyPhone: string }) {
+function ContentCard({ item, slug, onUpdated }: { item: ContentItem; slug: string; onUpdated: (item: ContentItem) => void }) {
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [expanded, setExpanded] = useState(item.status === "idea_pending" || item.status === "ready_for_review");
+  const [approving, setApproving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const cfg = STATUS_CONFIG[item.status];
   const isActionable = cfg.showActions;
+
+  const handleApprove = async () => {
+    if (approving) return;
+    setApproving(true);
+    setError(null);
+    try {
+      const { item: updated } = await submitApproval(slug, item.id, "approve");
+      onUpdated(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Couldn't approve. Try again.");
+    } finally {
+      setApproving(false);
+    }
+  };
+
+  const handleRevise = async (note: string) => {
+    const { item: updated } = await submitApproval(slug, item.id, "revise", note);
+    onUpdated(updated);
+  };
 
   return (
     <>
@@ -330,21 +361,26 @@ function ContentCard({ item, agencyPhone }: { item: ContentItem; agencyPhone: st
 
             {/* Action buttons */}
             {isActionable && (
-              <div className="flex gap-2 pt-1">
-                <button
-                  onClick={() => whatsappApprove(agencyPhone, item)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 hover:bg-green-500/15 text-green-400 font-medium py-2.5 rounded-xl text-sm transition-all"
-                >
-                  <Check className="w-4 h-4" />
-                  {item.status === "idea_pending" ? "Approve Idea" : "Approve Video"}
-                </button>
-                <button
-                  onClick={() => setRevisionOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#333] text-[#888] hover:text-white font-medium py-2.5 rounded-xl text-sm transition-all"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Request Revision
-                </button>
+              <div className="space-y-2 pt-1">
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleApprove}
+                    disabled={approving}
+                    className="flex-1 flex items-center justify-center gap-2 bg-green-500/10 border border-green-500/20 hover:bg-green-500/15 disabled:opacity-50 text-green-400 font-medium py-2.5 rounded-xl text-sm transition-all"
+                  >
+                    {approving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                    {approving ? "Sending…" : item.status === "idea_pending" ? "Approve Idea" : "Approve Video"}
+                  </button>
+                  <button
+                    onClick={() => setRevisionOpen(true)}
+                    disabled={approving}
+                    className="flex-1 flex items-center justify-center gap-2 bg-[#1a1a1a] border border-[#2a2a2a] hover:border-[#333] disabled:opacity-50 text-[#888] hover:text-white font-medium py-2.5 rounded-xl text-sm transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Request Revision
+                  </button>
+                </div>
+                {error && <p className="text-red-400 text-xs">{error}</p>}
               </div>
             )}
           </div>
@@ -352,7 +388,7 @@ function ContentCard({ item, agencyPhone }: { item: ContentItem; agencyPhone: st
       </div>
 
       {revisionOpen && (
-        <RevisionModal item={item} agencyPhone={agencyPhone} onClose={() => setRevisionOpen(false)} />
+        <RevisionModal item={item} onSubmit={handleRevise} onClose={() => setRevisionOpen(false)} />
       )}
     </>
   );
@@ -600,23 +636,6 @@ function PackageSection({ data }: { data: PortalData }) {
         </div>
       </div>
 
-      {data.package.primaryContactWhatsApp && (
-        <a
-          href={`https://wa.me/${data.package.primaryContactWhatsApp.replace(/\D/g, "")}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-3 bg-[#111] border border-[#1e1e1e] hover:border-green-500/20 rounded-2xl px-5 py-4 transition-all group"
-        >
-          <div className="w-9 h-9 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center flex-shrink-0">
-            <MessageCircle className="w-4 h-4 text-green-400" />
-          </div>
-          <div>
-            <p className="text-white text-sm font-medium">Contact your account manager</p>
-            <p className="text-[#555] text-xs">{data.package.primaryContactName} · WhatsApp</p>
-          </div>
-          <ExternalLink className="w-4 h-4 text-[#444] group-hover:text-[#666] ml-auto transition-colors" />
-        </a>
-      )}
     </div>
   );
 }
@@ -670,6 +689,14 @@ export default function ClientPortalPage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
+
+  const updateItem = (updated: ContentItem) => {
+    setData(d => d ? {
+      ...d,
+      contentItems: d.contentItems.map(i => i.id === updated.id ? updated : i),
+      updatedAt: new Date().toISOString(),
+    } : d);
+  };
 
   useEffect(() => {
     if (!slug || !authChecked) return;
@@ -871,7 +898,7 @@ export default function ClientPortalPage() {
                 <div className="space-y-2">
                   {currentMonthItems
                     .filter(i => i.status === "idea_pending" || i.status === "ready_for_review")
-                    .map(item => <ContentCard key={item.id} item={item} agencyPhone={data.agencyWhatsApp} />)}
+                    .map(item => <ContentCard key={item.id} item={item} slug={slug} onUpdated={updateItem} />)}
                 </div>
               </div>
             )}
@@ -885,7 +912,7 @@ export default function ClientPortalPage() {
                 <div className="space-y-2">
                   {currentMonthItems
                     .filter(i => i.status !== "idea_pending" && i.status !== "ready_for_review")
-                    .map(item => <ContentCard key={item.id} item={item} agencyPhone={data.agencyWhatsApp} />)}
+                    .map(item => <ContentCard key={item.id} item={item} slug={slug} onUpdated={updateItem} />)}
                 </div>
               </div>
             )}
@@ -911,16 +938,6 @@ export default function ClientPortalPage() {
             <img src="/logo-cactus.png" alt="Cactus Lab" className="w-5 h-5 rounded object-cover opacity-50" />
             <p className="text-[#444] text-xs">Powered by Cactus Lab</p>
           </div>
-          {data.package.primaryContactWhatsApp && (
-            <a
-              href={`https://wa.me/${data.package.primaryContactWhatsApp.replace(/\D/g, "")}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-[#444] hover:text-[#666] text-xs transition-colors"
-            >
-              Questions? Message us on WhatsApp
-            </a>
-          )}
         </div>
       </footer>
     </div>
