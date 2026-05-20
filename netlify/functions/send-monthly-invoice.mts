@@ -6,7 +6,7 @@ import { Resend } from "resend";
 
 // ── UPDATE THIS CONFIG WHEN CLIENT DETAILS CHANGE ──────────────────────────
 const INVOICE_CONFIG = {
-  enabled: true,
+  enabled: false, // disabled 2026-05-20 — flip back to true when you want auto-invoices to resume
   clientName: "Pets Delight",
   contactName: "Marwan",               // used in "Dear Marwan,"
   billToCompany: "Arab Land Trading LLC",
