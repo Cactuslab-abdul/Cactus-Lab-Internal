@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { PORTAL_SEEDS } from "@/lib/portal-seed";
+import { adminStorageClient, loadClientRecord, mergePortalWithClient } from "@/lib/portal-merge";
 import type { PortalData } from "@/lib/portal-types";
 
 export async function GET(
@@ -15,23 +16,28 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const admin = adminStorageClient();
+  let portalData: PortalData | null = null;
   try {
-    const { data, error } = await supabase.storage
+    const { data, error } = await admin.storage
       .from("app-data")
       .download(`portal/${slug}.json`);
-
     if (!error && data) {
-      const text = await data.text();
-      return NextResponse.json(JSON.parse(text) as PortalData);
+      portalData = JSON.parse(await data.text()) as PortalData;
     }
   } catch {
-    // fall through
+    // fall through to seed
   }
 
-  const seed = PORTAL_SEEDS[slug];
-  return seed
-    ? NextResponse.json(seed)
-    : NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!portalData) {
+    portalData = PORTAL_SEEDS[slug] ?? null;
+  }
+  if (!portalData) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const client = await loadClientRecord(admin, slug);
+  return NextResponse.json(mergePortalWithClient(portalData, client));
 }
 
 export async function PUT(

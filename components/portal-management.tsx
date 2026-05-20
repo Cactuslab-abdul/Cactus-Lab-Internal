@@ -783,58 +783,61 @@ function SettingsTab({ data, onChange, slug, portalUrl }: { data: PortalData; on
       <PortalAccessSection slug={slug} portalUrl={portalUrl} />
       <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-5 space-y-4">
         <p className="text-[#555] text-xs uppercase tracking-wide font-semibold">Portal Settings</p>
+        <div className="bg-[#0d0d0d] border border-[#1e1e1e] rounded-xl px-3 py-2 text-[#888] text-xs leading-relaxed">
+          <strong className="text-[#aaa]">Heads up:</strong> Client name, logo, package details, retainer, start date and account-manager contact are managed on the <strong className="text-[#aaa]">Clients</strong> page. Edits there flow into the portal automatically. Fields below that overlap (greyed-out) are read-only here.
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Name</label>
-            <input value={form.clientName} onChange={e => setForm(f => ({ ...f, clientName: e.target.value }))} className={inputCls()} />
+            <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Name <span className="normal-case text-[10px]">(from Clients page)</span></label>
+            <input value={form.clientName} disabled className={inputCls("opacity-50 cursor-not-allowed")} />
           </div>
           <div>
             <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Monthly Video Quota</label>
             <input type="number" value={form.monthlyVideoQuota} onChange={e => setForm(f => ({ ...f, monthlyVideoQuota: Number(e.target.value) }))} className={inputCls()} />
           </div>
           <div>
-            <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Agency WhatsApp</label>
+            <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Agency WhatsApp <span className="normal-case text-[10px] text-[#444]">(internal only — portal no longer shows it)</span></label>
             <input value={form.agencyWhatsApp} onChange={e => setForm(f => ({ ...f, agencyWhatsApp: e.target.value }))} placeholder="+971..." className={inputCls()} />
           </div>
           <div>
-            <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Logo URL</label>
-            <input value={form.logoUrl} onChange={e => setForm(f => ({ ...f, logoUrl: e.target.value }))} placeholder="/logo-pets-delight.jpg or https://..." className={inputCls()} />
+            <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Client Logo <span className="normal-case text-[10px]">(from Clients page)</span></label>
+            <input value={form.logoUrl} disabled className={inputCls("opacity-50 cursor-not-allowed")} />
           </div>
         </div>
         <div className="border-t border-[#1a1a1a] pt-4">
-          <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">Package</p>
+          <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">Package <span className="text-[#444] normal-case">(from Clients page)</span></p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Package Name</label>
-              <input value={form.package.name} onChange={e => setForm(f => ({ ...f, package: { ...f.package, name: e.target.value } }))} className={inputCls()} />
+              <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Package Name</label>
+              <input value={form.package.name} disabled className={inputCls("opacity-50 cursor-not-allowed")} />
             </div>
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Monthly Retainer (AED)</label>
-              <input type="number" value={form.package.retainerAED} onChange={e => setForm(f => ({ ...f, package: { ...f.package, retainerAED: Number(e.target.value) } }))} className={inputCls()} />
+              <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Monthly Retainer (AED)</label>
+              <input type="number" value={form.package.retainerAED} disabled className={inputCls("opacity-50 cursor-not-allowed")} />
             </div>
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Start Date</label>
-              <input type="date" value={form.package.startDate} onChange={e => setForm(f => ({ ...f, package: { ...f.package, startDate: e.target.value } }))} className={inputCls()} />
+              <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Start Date</label>
+              <input type="date" value={form.package.startDate} disabled className={inputCls("opacity-50 cursor-not-allowed")} />
             </div>
             <div>
               <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Contract Duration (months)</label>
               <input type="number" value={form.package.contractMonths ?? ""} onChange={e => setForm(f => ({ ...f, package: { ...f.package, contractMonths: Number(e.target.value) } }))} className={inputCls()} />
             </div>
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Account Manager Name</label>
+              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Account Manager Name <span className="normal-case text-[10px] text-[#444]">(agency-side, internal)</span></label>
               <input value={form.package.primaryContactName ?? ""} onChange={e => setForm(f => ({ ...f, package: { ...f.package, primaryContactName: e.target.value } }))} className={inputCls()} />
             </div>
             <div>
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Account Manager WhatsApp</label>
+              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Account Manager WhatsApp <span className="normal-case text-[10px] text-[#444]">(agency-side, internal)</span></label>
               <input value={form.package.primaryContactWhatsApp ?? ""} onChange={e => setForm(f => ({ ...f, package: { ...f.package, primaryContactWhatsApp: e.target.value } }))} placeholder="+971..." className={inputCls()} />
             </div>
             <div className="sm:col-span-2">
-              <label className="text-[#666] text-xs uppercase tracking-wide font-medium block mb-1.5">Services (one per line)</label>
+              <label className="text-[#444] text-xs uppercase tracking-wide font-medium block mb-1.5">Services <span className="normal-case text-[10px]">(from Clients page)</span></label>
               <textarea
                 value={form.package.services.join("\n")}
-                onChange={e => setForm(f => ({ ...f, package: { ...f.package, services: e.target.value.split("\n") } }))}
+                disabled
                 rows={5}
-                className={inputCls("resize-none")}
+                className={inputCls("opacity-50 cursor-not-allowed resize-none")}
               />
             </div>
           </div>

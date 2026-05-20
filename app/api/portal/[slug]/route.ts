@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { PORTAL_SEEDS } from "@/lib/portal-seed";
+import { adminStorageClient, loadClientRecord, mergePortalWithClient } from "@/lib/portal-merge";
 import type { PortalData } from "@/lib/portal-types";
 
 export async function GET(
@@ -8,26 +8,29 @@ export async function GET(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
+  const admin = adminStorageClient();
 
+  let portalData: PortalData | null = null;
   try {
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
+    const { data, error } = await admin.storage
       .from("app-data")
       .download(`portal/${slug}.json`);
-
     if (!error && data) {
-      const text = await data.text();
-      const portalData = JSON.parse(text) as PortalData;
-      return NextResponse.json(portalData);
+      portalData = JSON.parse(await data.text()) as PortalData;
     }
   } catch {
-    // fall through to seed data
+    // fall through to seed
   }
 
-  const seed = PORTAL_SEEDS[slug];
-  if (seed) {
-    return NextResponse.json(seed);
+  if (!portalData) {
+    portalData = PORTAL_SEEDS[slug] ?? null;
+  }
+  if (!portalData) {
+    return NextResponse.json({ error: "Portal not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ error: "Portal not found" }, { status: 404 });
+  // Overlay clients.json fields (logo, package, retainer, contact, etc.) so
+  // the portal always reflects what was last edited on the /clients page.
+  const client = await loadClientRecord(admin, slug);
+  return NextResponse.json(mergePortalWithClient(portalData, client));
 }
