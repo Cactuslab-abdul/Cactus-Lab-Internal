@@ -3,11 +3,77 @@
 import { useState, useEffect, useRef } from "react";
 import { syncLoad, syncSave } from "@/lib/sync";
 import {
-  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard, Upload,
+  Users, Plus, X, Edit2, Phone, Mail, AtSign, Calendar, Package, ArrowRight, LayoutDashboard, Upload, Eye, Copy, Check,
 } from "lucide-react";
 import { useRole } from "@/lib/useRole";
 import PortalManagement from "@/components/portal-management";
 import { createClient } from "@/lib/supabase/client";
+import { CLIENT_EMAIL_MAP } from "@/lib/portal-auth";
+
+function loginEmailForSlug(slug: string): string | null {
+  const entry = Object.entries(CLIENT_EMAIL_MAP).find(([, s]) => s === slug);
+  return entry ? entry[0] : null;
+}
+
+function ClientPortalActions({ clientId, onOpenPortal }: { clientId: string; onOpenPortal: (id: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const loginEmail = loginEmailForSlug(clientId);
+  const portalUrl = `/portal/${clientId}`;
+  const loginUrl = `/portal/login`;
+
+  async function copyEmail() {
+    if (!loginEmail) return;
+    try {
+      await navigator.clipboard.writeText(loginEmail);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {}
+  }
+
+  return (
+    <div className="border-t border-[#1a1a1a] pt-4 space-y-2">
+      <button
+        onClick={() => onOpenPortal(clientId)}
+        className="w-full flex items-center justify-between gap-2 bg-green-500/5 hover:bg-green-500/10 border border-green-500/20 hover:border-green-500/40 rounded-xl px-4 py-3 transition-all"
+      >
+        <div className="flex items-center gap-2.5">
+          <LayoutDashboard className="w-4 h-4 text-green-400 flex-shrink-0" />
+          <span className="text-white text-sm font-medium">Open Portal Dashboard</span>
+        </div>
+        <span className="text-green-400 text-xs font-medium">Edit &amp; manage →</span>
+      </button>
+
+      <a
+        href={loginEmail ? loginUrl : portalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="w-full flex items-center justify-between gap-2 bg-blue-500/5 hover:bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/40 rounded-xl px-4 py-3 transition-all"
+      >
+        <div className="flex items-center gap-2.5">
+          <Eye className="w-4 h-4 text-blue-400 flex-shrink-0" />
+          <span className="text-white text-sm font-medium">Open Client View</span>
+        </div>
+        <span className="text-blue-400 text-xs font-medium">See what they see →</span>
+      </a>
+
+      {loginEmail ? (
+        <div className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-3 py-2.5 flex items-center gap-2">
+          <span className="text-[#555] text-xs uppercase tracking-wide font-medium flex-shrink-0">Login</span>
+          <span className="text-[#bbb] text-sm font-mono flex-1 truncate">{loginEmail}</span>
+          <button
+            onClick={copyEmail}
+            className="flex-shrink-0 p-1.5 rounded-md text-[#666] hover:text-white hover:bg-[#1a1a1a] transition-colors"
+            title="Copy email"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-green-400" /> : <Copy className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+      ) : (
+        <p className="text-[#555] text-xs px-1">No client login mapped yet — add the email in <code className="text-[#888]">lib/portal-auth.ts</code> to enable testing as this client.</p>
+      )}
+    </div>
+  );
+}
 
 const NICHES = [
   "Pets & Pet Products",
@@ -554,19 +620,8 @@ function ClientCard({
         </div>
       )}
 
-      {/* Portal action */}
-      <div className="border-t border-[#1a1a1a] pt-4">
-        <button
-          onClick={() => onOpenPortal(client.id)}
-          className="w-full flex items-center justify-between gap-2 bg-green-500/5 hover:bg-green-500/10 border border-green-500/20 hover:border-green-500/40 rounded-xl px-4 py-3 transition-all group"
-        >
-          <div className="flex items-center gap-2.5">
-            <LayoutDashboard className="w-4 h-4 text-green-400 flex-shrink-0" />
-            <span className="text-white text-sm font-medium">Open Portal Dashboard</span>
-          </div>
-          <span className="text-green-400 text-xs font-medium">View &amp; manage →</span>
-        </button>
-      </div>
+      {/* Portal actions */}
+      <ClientPortalActions clientId={client.id} onOpenPortal={onOpenPortal} />
     </div>
   );
 }
