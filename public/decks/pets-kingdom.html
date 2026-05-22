@@ -1,0 +1,506 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pets Kingdom × Cactus Lab — Pitch</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #0f0f0f;
+    --border: #1a1a1a;
+    --text: #ffffff;
+    --muted: #888;
+    --dim: #555;
+    --green: #22c55e;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; width: 100%; background: var(--bg); color: var(--text); font-family: 'Inter', -apple-system, sans-serif; overflow: hidden; -webkit-font-smoothing: antialiased; }
+
+  .deck { position: relative; width: 100vw; height: 100vh; }
+  .slide {
+    position: absolute; inset: 0;
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8vh 9vw;
+    opacity: 0;
+    transition: opacity 280ms ease;
+  }
+  .slide.active { display: flex; opacity: 1; }
+  .slide.center { align-items: center; text-align: center; justify-content: center; }
+
+  .eyebrow {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+  }
+  .eyebrow.green { color: var(--green); }
+  .eyebrow.amber { color: var(--amber); }
+  .eyebrow.red { color: var(--red); }
+  .eyebrow.blue { color: var(--blue); }
+
+  h1.title { font-size: clamp(2.6rem, 6vw, 5.5rem); font-weight: 800; line-height: 1.02; letter-spacing: -0.02em; margin-bottom: 1.5rem; }
+  h2.h { font-size: clamp(2rem, 4.4vw, 3.6rem); font-weight: 800; line-height: 1.08; letter-spacing: -0.015em; margin-bottom: 1rem; }
+  h3.sub { font-size: clamp(1.1rem, 1.6vw, 1.4rem); font-weight: 500; color: #aaa; line-height: 1.5; max-width: 60ch; }
+  p.body { font-size: clamp(1.05rem, 1.4vw, 1.25rem); color: #bbb; line-height: 1.6; max-width: 62ch; }
+
+  .red { color: var(--red); }
+  .amber { color: var(--amber); }
+  .green { color: var(--green); }
+  .blue { color: var(--blue); }
+  .muted { color: var(--muted); }
+
+  .big {
+    font-size: clamp(5rem, 12vw, 11rem);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+  .small-caps {
+    font-size: 0.8rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .row { display: grid; gap: 2.5rem; width: 100%; }
+  .row-2 { grid-template-columns: 1fr 1fr; }
+  .row-3 { grid-template-columns: repeat(3, 1fr); }
+  .row-4 { grid-template-columns: repeat(4, 1fr); }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 1.75rem;
+  }
+  .card.amber-bg { background: linear-gradient(135deg, rgba(245,158,11,0.1), rgba(245,158,11,0)); border-color: rgba(245,158,11,0.2); }
+  .card.red-bg { background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(239,68,68,0)); border-color: rgba(239,68,68,0.2); }
+  .card.green-bg { background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0)); border-color: rgba(34,197,94,0.2); }
+  .card.blue-bg { background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(59,130,246,0)); border-color: rgba(59,130,246,0.2); }
+
+  ul.checks { list-style: none; }
+  ul.checks li { font-size: 1.05rem; color: #ccc; line-height: 1.6; margin-bottom: 0.8rem; padding-left: 1.6rem; position: relative; }
+  ul.checks li::before { content: "✓"; color: var(--green); position: absolute; left: 0; font-weight: bold; }
+
+  ul.crosses li::before { content: "×"; color: var(--red); font-weight: bold; font-size: 1.3rem; }
+  ul.dots li::before { content: "•"; color: var(--muted); font-weight: bold; }
+
+  .footer {
+    position: fixed;
+    bottom: 1.5rem;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 2rem;
+    color: var(--dim);
+    font-size: 0.75rem;
+    pointer-events: none;
+    z-index: 10;
+  }
+  .nav-hint { pointer-events: auto; }
+  .progress {
+    position: fixed; bottom: 0; left: 0; height: 2px; background: var(--green);
+    transition: width 280ms ease; z-index: 11;
+  }
+
+  .controls { position: fixed; top: 1.25rem; right: 1.5rem; display: flex; gap: 0.5rem; z-index: 12; }
+  .controls button {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 150ms;
+  }
+  .controls button:hover { color: #fff; border-color: #333; }
+
+  .pill {
+    display: inline-block;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: 1px solid;
+  }
+  .pill.green { background: rgba(34,197,94,0.1); color: var(--green); border-color: rgba(34,197,94,0.2); }
+  .pill.amber { background: rgba(245,158,11,0.1); color: var(--amber); border-color: rgba(245,158,11,0.2); }
+  .pill.red { background: rgba(239,68,68,0.1); color: var(--red); border-color: rgba(239,68,68,0.2); }
+
+  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-radius: 16px; overflow: hidden; border: 1px solid var(--border); width: 100%; }
+  .stat-cell { background: var(--surface); padding: 1.5rem; }
+  .stat-cell .small-caps { margin-bottom: 1rem; }
+  .stat-cell p.val { font-size: 1.1rem; font-weight: 600; color: #fff; margin-bottom: 1.2rem; }
+
+  .deliverables { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem 2rem; }
+  .deliverables div { display: flex; align-items: flex-start; gap: 0.7rem; color: #ddd; font-size: 1rem; line-height: 1.5; }
+  .deliverables span.check { color: var(--green); flex-shrink: 0; margin-top: 2px; font-weight: 700; }
+
+  .price-block {
+    background: linear-gradient(135deg, rgba(34,197,94,0.12), rgba(34,197,94,0));
+    border: 1px solid rgba(34,197,94,0.25);
+    border-radius: 22px;
+    padding: 2.5rem;
+    margin-bottom: 1.5rem;
+    width: 100%;
+  }
+  .price-block .num { font-size: clamp(3.5rem, 7vw, 5.5rem); font-weight: 800; line-height: 1; letter-spacing: -0.03em; }
+  .price-block .sub { color: var(--muted); font-size: 1rem; margin-top: 0.5rem; }
+
+  .logo-row { display: flex; align-items: center; gap: 1rem; }
+  .logo-row img { width: 44px; height: 44px; border-radius: 10px; }
+
+  .arrow { color: var(--green); font-weight: 700; margin: 0 0.6rem; }
+
+  @media (max-width: 800px) {
+    .row-2, .row-3, .row-4, .deliverables, .stat-grid { grid-template-columns: 1fr; }
+    .slide { padding: 6vh 6vw; }
+  }
+</style>
+</head>
+<body>
+
+<div class="controls">
+  <button id="prevBtn" title="Previous (←)">←</button>
+  <button id="nextBtn" title="Next (→)">→</button>
+  <button id="fullBtn" title="Fullscreen (F)">Full</button>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- 1: Title -->
+  <section class="slide center">
+    <div class="eyebrow green">CACTUS LAB · 22 MAY 2026</div>
+    <h1 class="title">A 90-day plan<br />for <span class="amber">Pets Kingdom</span>.</h1>
+    <h3 class="sub" style="margin-top: 1rem;">Prepared for Chandra Mohan · Founder, Pets Kingdom UAE</h3>
+  </section>
+
+  <!-- 2: Why we're here -->
+  <section class="slide">
+    <div class="eyebrow">Why we're here</div>
+    <h2 class="h">You built the credentials.<br />Let's build the audience.</h2>
+    <p class="body" style="margin-top: 1.5rem;">
+      Mohan, we've known each other five years through my dog. This isn't a cold pitch — it's me bringing you something I think will actually move your business. Take the next 30 minutes and decide for yourself.
+    </p>
+  </section>
+
+  <!-- 3: The gap (the headline) -->
+  <section class="slide">
+    <div class="eyebrow green">THE GAP</div>
+    <h1 class="title">
+      <span class="muted">30</span> years.<br />
+      <span class="amber">7×</span> Best Dog in UAE.<br />
+      <span class="red">219</span> followers.
+    </h1>
+    <p class="body" style="margin-top: 1.5rem;">The story is enormous. The reach is tiny. That's a distribution problem — and it's fixable.</p>
+  </section>
+
+  <!-- 4: Current state -->
+  <section class="slide">
+    <div class="eyebrow">Where Pets Kingdom is today</div>
+    <h2 class="h" style="margin-bottom: 2.5rem;">What we found in the audit.</h2>
+    <div class="row row-4">
+      <div class="card red-bg">
+        <div class="small-caps">Instagram</div>
+        <p style="font-size: 2.2rem; font-weight: 800; margin: 0.6rem 0;">219</p>
+        <p class="muted" style="font-size: 0.9rem;">189 posts · 1.16 followers per post</p>
+      </div>
+      <div class="card red-bg">
+        <div class="small-caps">Facebook</div>
+        <p style="font-size: 1.6rem; font-weight: 700; margin: 0.6rem 0;">Misaligned</p>
+        <p class="muted" style="font-size: 0.9rem;">Handle is /petshopuae — not Pets Kingdom</p>
+      </div>
+      <div class="card amber-bg">
+        <div class="small-caps">Website</div>
+        <p style="font-size: 1.6rem; font-weight: 700; margin: 0.6rem 0;">Broken</p>
+        <p class="muted" style="font-size: 0.9rem;">Placeholder images, no pricing visible</p>
+      </div>
+      <div class="card amber-bg">
+        <div class="small-caps">Reviews</div>
+        <p style="font-size: 1.6rem; font-weight: 700; margin: 0.6rem 0;">Scattered</p>
+        <p class="muted" style="font-size: 0.9rem;">Groupon 4.7★ · HiDubai 0 reviews · low Google visibility</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5: The story you're not telling -->
+  <section class="slide">
+    <div class="eyebrow amber">THE STORY YOU'RE NOT TELLING</div>
+    <h2 class="h">Most pet businesses<br />don't have a founder story.</h2>
+    <h3 class="sub" style="margin-top: 1rem;">You do. And it's the most compelling I've seen in this market.</h3>
+    <div class="row row-2" style="margin-top: 2.5rem;">
+      <div class="card amber-bg">
+        <div class="small-caps amber" style="color: var(--amber);">The facts</div>
+        <ul class="checks" style="margin-top: 1rem;">
+          <li><strong>30 years</strong> training dogs — started at age 15</li>
+          <li><strong>7×</strong> Best Dog in UAE winners trained personally</li>
+          <li>Official trainer, <strong>Kottayam Kennel Club</strong>, Kerala</li>
+          <li>"Most celebrated dog trainer in India" before Dubai</li>
+          <li>International training in <strong>France & Thailand</strong></li>
+        </ul>
+      </div>
+      <div class="card red-bg">
+        <div class="small-caps" style="color: var(--red);">What Instagram knows</div>
+        <p class="big red" style="margin-top: 0.5rem; font-size: clamp(4rem, 9vw, 8rem);">219</p>
+        <p class="muted" style="font-size: 0.95rem; margin-top: 0.5rem;">followers, after 189 posts</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6: Competitor -->
+  <section class="slide">
+    <div class="eyebrow">For reference — a younger competitor in Dubai</div>
+    <h2 class="h">Zoomies has less story.<br />And <span class="red">21× more reach.</span></h2>
+    <div class="stat-grid" style="margin-top: 2.5rem;">
+      <div class="stat-cell">
+        <div class="small-caps">Metric</div>
+        <p class="val" style="color: #888;">Instagram followers</p>
+        <p class="val" style="color: #888;">Total posts</p>
+        <p class="val" style="color: #888;">Followers per post</p>
+        <p class="val" style="color: #888;">Awards</p>
+        <p class="val" style="color: #888;">Years</p>
+      </div>
+      <div class="stat-cell">
+        <div class="small-caps amber" style="color: var(--amber);">Pets Kingdom</div>
+        <p class="val">219</p>
+        <p class="val">189</p>
+        <p class="val">1.16</p>
+        <p class="val">7× Best Dog in UAE</p>
+        <p class="val">30 (Mohan)</p>
+      </div>
+      <div class="stat-cell">
+        <div class="small-caps" style="color: var(--red);">Zoomies Dubai</div>
+        <p class="val">4,559 <span style="color: var(--red); font-size: 0.85rem;">21×</span></p>
+        <p class="val">620</p>
+        <p class="val">7.35 <span style="color: var(--red); font-size: 0.85rem;">6×</span></p>
+        <p class="val">"Best Daycare Dubai 2025"</p>
+        <p class="val">Younger business</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7: Why this happens -->
+  <section class="slide">
+    <div class="eyebrow">Why this happens</div>
+    <h2 class="h">It's not the business.<br />It's the bandwidth.</h2>
+    <p class="body" style="margin-top: 1.5rem;">
+      You're running a 7-day-a-week facility. You're training dogs. You're managing staff, boarding, grooming, daycare. Nobody who runs an operation like yours has time to also be a content studio.
+    </p>
+    <p class="body" style="margin-top: 1.5rem;">
+      <span style="color: #fff; font-weight: 600;">That's the gap we fill.</span> You keep doing what you've done for 30 years. We turn it into reach.
+    </p>
+  </section>
+
+  <!-- 8: Our proof -->
+  <section class="slide">
+    <div class="eyebrow blue">OUR PROOF — SAME NICHE</div>
+    <h2 class="h">Pets Delight has been paying us<br />AED 5,500/month since March.</h2>
+    <div class="card blue-bg" style="margin-top: 2.5rem;">
+      <div class="logo-row" style="margin-bottom: 1.5rem;">
+        <img src="/logo-pets-delight.jpg" alt="Pets Delight" />
+        <div>
+          <p style="font-size: 1.3rem; font-weight: 700;">Pets Delight</p>
+          <p class="muted" style="font-size: 0.9rem;">Pet retail · Dubai · 3+ months · Zero churn</p>
+        </div>
+      </div>
+      <p class="body">15 reels a month, full Instagram + Facebook management, monthly performance reports. The exact system we'd run for Pets Kingdom — adapted to your story and your facility.</p>
+      <p class="muted" style="font-size: 0.85rem; margin-top: 1.5rem;">Live screen-share of best-performing reels and analytics in the next 3 minutes.</p>
+    </div>
+  </section>
+
+  <!-- 9: Content pillars -->
+  <section class="slide">
+    <div class="eyebrow green">WHAT WE'D BUILD</div>
+    <h2 class="h">5 content pillars for Pets Kingdom.</h2>
+    <div class="row row-3" style="margin-top: 2.5rem;">
+      <div class="card">
+        <p class="amber" style="font-weight: 700; margin-bottom: 0.5rem;">1 · The Trainer Story</p>
+        <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">Mohan's 30-year journey. People follow legends, not facilities.</p>
+      </div>
+      <div class="card">
+        <p class="amber" style="font-weight: 700; margin-bottom: 0.5rem;">2 · Boarding Diaries</p>
+        <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">Daily life of dogs at the facility. Owners are obsessed with seeing their pets.</p>
+      </div>
+      <div class="card">
+        <p class="amber" style="font-weight: 700; margin-bottom: 0.5rem;">3 · Training Transformations</p>
+        <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">Before / after reels. Highest-saved content type in the pet niche.</p>
+      </div>
+      <div class="card">
+        <p class="amber" style="font-weight: 700; margin-bottom: 0.5rem;">4 · Championship Footage</p>
+        <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">Past UAE-title winners. Method, results, repeatability. Authority content.</p>
+      </div>
+      <div class="card">
+        <p class="amber" style="font-weight: 700; margin-bottom: 0.5rem;">5 · Owner Testimonials</p>
+        <p class="muted" style="font-size: 0.95rem; line-height: 1.5;">5+ year clients on camera. Trust is the only currency in boarding.</p>
+      </div>
+      <div class="card green-bg" style="display: flex; flex-direction: column; justify-content: center;">
+        <p class="small-caps green" style="color: var(--green); margin-bottom: 0.5rem;">Output</p>
+        <p style="font-size: 1.8rem; font-weight: 800; line-height: 1.1;">15 videos<br />/ month</p>
+        <p class="muted" style="font-size: 0.9rem; margin-top: 0.5rem;">+ full IG + FB management</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10: 90-day projection -->
+  <section class="slide">
+    <div class="eyebrow green">90-DAY PROJECTION</div>
+    <h2 class="h">Realistic numbers we'd aim for.</h2>
+    <div style="width: 100%; margin-top: 2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 18px; overflow: hidden;">
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1.4rem 2rem; border-bottom: 1px solid var(--border); align-items: center;">
+        <p class="muted">Instagram followers</p>
+        <p style="color: #888;">219</p>
+        <p><span class="arrow">→</span><strong>2,500+</strong></p>
+        <span class="pill green">+11×</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1.4rem 2rem; border-bottom: 1px solid var(--border); align-items: center;">
+        <p class="muted">Avg reel views</p>
+        <p style="color: #888;">~400</p>
+        <p><span class="arrow">→</span><strong>15,000+</strong></p>
+        <span class="pill green">+37×</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1.4rem 2rem; border-bottom: 1px solid var(--border); align-items: center;">
+        <p class="muted">Monthly enquiries from social</p>
+        <p style="color: #888;">Unknown</p>
+        <p><span class="arrow">→</span><strong>30+</strong></p>
+        <span class="pill green">Measurable</span>
+      </div>
+      <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1.4rem 2rem; align-items: center;">
+        <p class="muted">Al Quoz pet-circle brand recall</p>
+        <p style="color: #888;">Limited</p>
+        <p><span class="arrow">→</span><strong>Top-3</strong></p>
+        <span class="pill green">Dominant</span>
+      </div>
+    </div>
+    <p class="muted" style="font-size: 0.8rem; margin-top: 1rem;">Projections based on observed growth from comparable pet-niche accounts running consistent short-form video.</p>
+  </section>
+
+  <!-- 11: The offer -->
+  <section class="slide">
+    <div class="eyebrow green">THE PROPOSAL</div>
+    <div class="price-block">
+      <div class="small-caps green" style="color: var(--green); margin-bottom: 0.5rem;">FULL SOCIAL MEDIA MANAGEMENT</div>
+      <div class="num">AED 5,500<span style="font-size: 1.2rem; color: var(--muted); font-weight: 400;">/month</span></div>
+      <p class="sub">Month-to-month · Cancel anytime after first 60 days</p>
+    </div>
+    <h3 class="sub" style="margin-bottom: 1.2rem; color: var(--muted); font-size: 0.85rem; letter-spacing: 0.1em; text-transform: uppercase;">What's included</h3>
+    <div class="deliverables">
+      <div><span class="check">✓</span>15 short-form videos / month (Reels + TikTok)</div>
+      <div><span class="check">✓</span>Full Instagram + Facebook management</div>
+      <div><span class="check">✓</span>Monthly facility shoot day — no on-camera requirement</div>
+      <div><span class="check">✓</span>Content strategy + posting schedule</div>
+      <div><span class="check">✓</span>Monthly performance report + plan</div>
+      <div><span class="check">✓</span>Arabic + English subtitles on every video</div>
+    </div>
+  </section>
+
+  <!-- 12: What we need from you -->
+  <section class="slide">
+    <div class="eyebrow">If we move forward</div>
+    <h2 class="h">Three things from your side.</h2>
+    <div class="row row-3" style="margin-top: 2.5rem;">
+      <div class="card">
+        <p class="small-caps amber" style="color: var(--amber);">1 · Half-day access</p>
+        <p style="font-size: 1.1rem; font-weight: 600; margin-top: 0.8rem;">One shoot day at the facility per month</p>
+        <p class="muted" style="font-size: 0.9rem; margin-top: 0.5rem;">We bring the gear. You keep working.</p>
+      </div>
+      <div class="card">
+        <p class="small-caps amber" style="color: var(--amber);">2 · Owner permissions</p>
+        <p style="font-size: 1.1rem; font-weight: 600; margin-top: 0.8rem;">Consent slips for filming dogs</p>
+        <p class="muted" style="font-size: 0.9rem; margin-top: 0.5rem;">Standard form, we'll draft it.</p>
+      </div>
+      <div class="card">
+        <p class="small-caps amber" style="color: var(--amber);">3 · Approval window</p>
+        <p style="font-size: 1.1rem; font-weight: 600; margin-top: 0.8rem;">48 hours to review content</p>
+        <p class="muted" style="font-size: 0.9rem; margin-top: 0.5rem;">One revision per video.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13: The ask -->
+  <section class="slide center">
+    <div class="eyebrow green">THE ASK</div>
+    <h1 class="title" style="font-size: clamp(2.4rem, 5.5vw, 4.6rem);">Give me a yes or a no<br />by end of this week.</h1>
+    <p class="body" style="margin-top: 1.5rem; max-width: 50ch;">If it's a yes — we sign Monday, shoot Wednesday, first reel publishes the following Monday.</p>
+    <p class="body" style="margin-top: 1rem; max-width: 50ch;">If it's a no — I still bring my dog to you, no awkwardness, and we both move on.</p>
+  </section>
+
+  <!-- 14: Thank you -->
+  <section class="slide center">
+    <div class="eyebrow">Thank you, Mohan.</div>
+    <h2 class="h" style="font-size: clamp(1.6rem, 3vw, 2.4rem);">Abdulrahman AbouZaid</h2>
+    <p class="muted" style="margin-top: 0.5rem;">Cactus Lab · +971 56 345 9955</p>
+    <p class="muted" style="margin-top: 0.3rem;">cactuslab-os.netlify.app/prospect/pets-kingdom</p>
+  </section>
+
+</div>
+
+<div class="progress" id="progress"></div>
+
+<div class="footer">
+  <p>Cactus Lab · Pets Kingdom Pitch</p>
+  <p class="nav-hint"><span id="cur">1</span> / <span id="total">14</span> · ← → to navigate · F for fullscreen</p>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+  let current = 0;
+  document.getElementById('total').textContent = total;
+
+  function show(i) {
+    current = Math.max(0, Math.min(total - 1, i));
+    slides.forEach((s, idx) => s.classList.toggle('active', idx === current));
+    document.getElementById('cur').textContent = current + 1;
+    document.getElementById('progress').style.width = ((current + 1) / total * 100) + '%';
+    history.replaceState(null, '', '#' + (current + 1));
+  }
+
+  function next() { show(current + 1); }
+  function prev() { show(current - 1); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); next(); }
+    if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prev(); }
+    if (e.key === 'Home') show(0);
+    if (e.key === 'End') show(total - 1);
+    if (e.key === 'f' || e.key === 'F') { toggleFull(); }
+  });
+
+  document.getElementById('nextBtn').addEventListener('click', next);
+  document.getElementById('prevBtn').addEventListener('click', prev);
+  document.getElementById('fullBtn').addEventListener('click', toggleFull);
+
+  function toggleFull() {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+
+  // Deep link via hash
+  const startHash = parseInt((location.hash || '#1').slice(1), 10);
+  show(isNaN(startHash) ? 0 : startHash - 1);
+
+  // Click to advance (right half = next, left half = prev)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.controls') || e.target.closest('a') || e.target.closest('button')) return;
+    if (e.clientX > window.innerWidth / 2) next(); else prev();
+  });
+</script>
+
+</body>
+</html>
