@@ -38,7 +38,8 @@ export async function middleware(req: NextRequest) {
     pathname.startsWith("/auth") ||
     pathname.startsWith("/portal") ||
     pathname.startsWith("/api/portal/") ||
-    pathname.startsWith("/prospect");
+    pathname.startsWith("/prospect") ||
+    pathname.startsWith("/decks");
 
   if (!user && !isPublic) {
     const loginUrl = req.nextUrl.clone();
