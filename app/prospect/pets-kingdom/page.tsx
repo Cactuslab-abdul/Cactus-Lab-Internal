@@ -37,7 +37,7 @@ const ninetyDay = [
 
 const offer = {
   package: "Full Social Media Management",
-  retainer: 5500,
+  retainer: 7000,
   deliverables: [
     "15 short-form videos per month (Reels + TikTok)",
     "Full Instagram + Facebook management",
