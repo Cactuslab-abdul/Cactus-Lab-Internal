@@ -9,19 +9,19 @@ export const metadata = {
 const services = [
   { icon: Video, title: "Short-form video", desc: "15 Reels and TikToks every month, shot at your facility, edited to UAE-market specs." },
   { icon: MessageSquare, title: "Social media management", desc: "We run your Instagram and Facebook end-to-end. Captions, posting, replies, hashtags." },
-  { icon: Camera, title: "Monthly facility shoot", desc: "We come to you for one half-day every month. You don't need to be on camera." },
+  { icon: Camera, title: "Regular facility shoots", desc: "We come to the facility multiple times a month, capturing different days, dogs and moments. Time with you and the team built in." },
   { icon: BarChart3, title: "Performance reporting", desc: "Monthly report on views, reach, follower growth, and what's working — with next-month plan." },
 ];
 
 const process = [
   { step: "01", title: "Discovery", desc: "We sit down with you, learn your story, understand your customers, map out what we'll showcase first." },
   { step: "02", title: "Strategy", desc: "We build a 90-day content plan tailored to Pets Kingdom — pillars, formats, posting cadence." },
-  { step: "03", title: "Shoot day", desc: "Half a day at the facility. We capture enough footage to fuel 4–6 weeks of content." },
+  { step: "03", title: "Ongoing shoots", desc: "Regular visits to the facility throughout the month — capturing dogs, training sessions, and time with you and the team." },
   { step: "04", title: "Publish & iterate", desc: "We post, monitor, and adjust based on what your audience responds to. Every month gets sharper." },
 ];
 
 const pillars = [
-  { icon: Trophy, title: "The Mohan Story", desc: "30 years, 7 UAE titles, France and Thailand training. People follow legends, not facilities." },
+  { icon: Trophy, title: "The Mohan Story", desc: "30 years of training, UAE-title-winning dogs, France and Thailand seminars. People follow legends, not facilities." },
   { icon: Heart, title: "Boarding Diaries", desc: "Daily life of dogs at the facility. Pet owners love seeing what their dogs are up to." },
   { icon: Video, title: "Training Transformations", desc: "Before / after dog behavior reels — one of the highest-saved content types in the pet niche." },
   { icon: Award, title: "Championship Content", desc: "Past UAE-title winners, your method, your repeatable wins. This is authority content." },
@@ -29,10 +29,10 @@ const pillars = [
 ];
 
 const ninetyDay = [
-  { metric: "Consistent posting", value: "15 reels / month", note: "Up from sporadic — every week, every month" },
-  { metric: "Audience growth", value: "2,500+ followers", note: "Realistic target for the first 90 days" },
-  { metric: "Reach per post", value: "15,000+ avg views", note: "Based on what consistent short-form delivers in this niche" },
-  { metric: "Inbound enquiries", value: "Measurable", note: "We tag everything so you can see what social actually brings in" },
+  { metric: "Consistent posting", value: "15 reels every month, like clockwork", note: "Every week, every month — without you lifting a finger" },
+  { metric: "Audience growth", value: "A real, engaged following", note: "Built steadily over the first quarter, compounding from there" },
+  { metric: "Reach & visibility", value: "Content that actually gets seen", note: "Built to reach beyond current followers — into UAE pet owners discovering you for the first time" },
+  { metric: "Clarity on what works", value: "Monthly reports, no guesswork", note: "You'll see what's landing, what's converting, and what we're adjusting next month" },
 ];
 
 const offer = {
@@ -41,7 +41,7 @@ const offer = {
   deliverables: [
     "15 short-form videos per month (Reels + TikTok)",
     "Full Instagram + Facebook management",
-    "Monthly facility shoot day — no on-camera requirement",
+    "Regular facility shoots — no on-camera requirement",
     "Content strategy + posting schedule (Later / Buffer)",
     "Monthly performance report with next-month plan",
     "Arabic + English subtitles on every video",
@@ -58,7 +58,7 @@ export default function PetsKingdomProspectPage() {
             <img src="/logo-cactus.png" alt="Cactus Lab" className="w-8 h-8 rounded-lg" />
             <div>
               <p className="text-[10px] uppercase tracking-widest text-[#666] font-medium">Prepared for</p>
-              <h1 className="text-base font-bold">Chandra Mohan — Pets Kingdom UAE</h1>
+              <h1 className="text-base font-bold">Mohan — Pets Kingdom</h1>
             </div>
           </div>
           <p className="text-xs text-[#666] hidden sm:block">By Cactus Lab · {new Date().toLocaleDateString("en-AE", { day: "numeric", month: "long", year: "numeric" })}</p>
@@ -73,7 +73,7 @@ export default function PetsKingdomProspectPage() {
           into <span className="text-green-400">stories worth following.</span>
         </h2>
         <p className="text-[#aaa] text-lg max-w-3xl leading-relaxed">
-          Mohan, this is a quick walkthrough of what we do, how we work, and what we'd build together for Pets Kingdom. Five minutes of reading, then we can talk on the call.
+          Mohan, this is a quick walkthrough of what we do, how we work, and what we'd build together for Pets Kingdom. Five minutes of reading, then we can talk it through on the call.
         </p>
       </section>
 
@@ -233,11 +233,11 @@ export default function PetsKingdomProspectPage() {
       <section className="max-w-7xl mx-auto px-6 py-10 pb-20">
         <div className="bg-gradient-to-br from-[#111] to-[#0a0a0a] border border-[#1f1f1f] rounded-2xl p-8 sm:p-12 text-center">
           <p className="text-xs uppercase tracking-widest text-[#666] font-semibold mb-4">Next step</p>
-          <h3 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">If this resonates,<br />we start with a facility shoot day.</h3>
-          <p className="text-[#aaa] max-w-2xl mx-auto leading-relaxed mb-8">We block one half-day at Pets Kingdom, capture enough footage to fuel 4–6 weeks of content, and start publishing within 7 days. You don't need to be on camera unless you want to be.</p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center text-sm">
-            <a href="https://wa.me/971563459955" target="_blank" rel="noopener noreferrer" className="bg-green-500 hover:bg-green-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors">WhatsApp Abdulrahman</a>
-            <p className="text-[#666]">or reply to my email when you've had a chance to think it through</p>
+          <h3 className="text-3xl sm:text-4xl font-bold mb-4 leading-tight">If this resonates,<br />we kick off with discovery.</h3>
+          <p className="text-[#aaa] max-w-2xl mx-auto leading-relaxed mb-8">We get on a call, learn the operation, plan the first round of shoots, and start publishing within the first few weeks. You don't need to be on camera unless you want to be.</p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center text-sm">
+            <a href="https://wa.me/971563459955" target="_blank" rel="noopener noreferrer" className="bg-green-500 hover:bg-green-400 text-black font-semibold px-6 py-3 rounded-xl transition-colors">WhatsApp Abdulrahman · +971 56 345 9955</a>
+            <a href="https://wa.me/971522560115" target="_blank" rel="noopener noreferrer" className="bg-[#1a1a1a] hover:bg-[#222] border border-[#2a2a2a] text-white font-semibold px-6 py-3 rounded-xl transition-colors">WhatsApp Awab · +971 52 256 0115</a>
           </div>
         </div>
         <p className="text-center text-[#444] text-xs mt-8">Prepared by Cactus Lab FZ LLC · Dubai · cactuslab.ae</p>
