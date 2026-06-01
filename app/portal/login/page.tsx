@@ -26,18 +26,26 @@ export default function PortalLoginPage() {
       return;
     }
 
-    // Look up which portal slug belongs to this email
-    const slugRes = await fetch("/api/portal/my-slug");
-    const { slug } = await slugRes.json() as { slug: string | null };
-
-    if (!slug) {
+    // Look up role and redirect accordingly
+    const meRes = await fetch("/api/portal/v2/me");
+    if (!meRes.ok) {
       await supabase.auth.signOut();
-      setError("This email doesn't have portal access. Contact your account manager.");
+      setError("This account doesn't have portal access. Contact your account manager.");
       setLoading(false);
       return;
     }
+    const me = await meRes.json() as { role: string; company?: { slug: string } };
 
-    router.push(`/portal/${slug}`);
+    if (me.role === "CLIENT" && me.company?.slug) {
+      router.push(`/portal/client/${me.company.slug}`);
+    } else if (me.role === "ADMIN" || me.role === "EDITOR") {
+      router.push("/portal/internal");
+    } else {
+      await supabase.auth.signOut();
+      setError("This account doesn't have portal access. Contact your account manager.");
+      setLoading(false);
+      return;
+    }
     router.refresh();
   };
 
