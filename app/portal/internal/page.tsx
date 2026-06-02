@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
-import { PlayCircle, FileText, TrendingUp, Loader2, Users, Plus, X, Check, RefreshCw, Eye } from "lucide-react";
+import { PlayCircle, FileText, TrendingUp, Loader2, Users, Plus, X, Check, RefreshCw, Eye, Trash2 } from "lucide-react";
 import type { CompanyWithStats } from "@/lib/portal/types";
 import { useRefreshOnFocus } from "@/lib/portal/useRefresh";
 
@@ -76,6 +76,12 @@ export default function InternalDirectory() {
       setSaveError(err.error || `Server error (${res.status}). If the companies table doesn't exist, run supabase/migrations/001_portal_v2.sql in Supabase.`);
     }
     setSaving(false);
+  };
+
+  const deleteCompany = async (c: CompanyWithStats) => {
+    if (!confirm(`Remove "${c.name}" from the portal? This cannot be undone.`)) return;
+    await fetch(`/api/portal/v2/companies/${c.id}`, { method: "DELETE" });
+    setCompanies(prev => prev.filter(x => x.id !== c.id));
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 text-[#333] animate-spin" /></div>;
@@ -212,6 +218,10 @@ export default function InternalDirectory() {
                   {c.package_name && <p className="text-[#555] text-xs mt-0.5 truncate">{c.package_name}</p>}
                 </div>
                 <span className="text-green-400 text-sm font-semibold flex-shrink-0">{aed(c.retainer_aed)}/mo</span>
+                <button onClick={() => void deleteCompany(c)}
+                  className="p-1.5 text-[#333] hover:text-red-400 hover:bg-red-500/5 rounded-lg transition-all flex-shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
               </div>
 
               <div className="grid grid-cols-3 gap-2 mb-4">
