@@ -3,6 +3,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function middleware(req: NextRequest) {
   let res = NextResponse.next({ request: req });
+  const { pathname } = req.nextUrl;
+
+  // Portal routes are fully self-managed — skip Supabase auth entirely
+  if (pathname.startsWith("/portal") || pathname.startsWith("/api/portal/")) {
+    return res;
+  }
 
   // If env vars not set (e.g. Netlify before vars are configured), pass through
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
@@ -27,7 +33,6 @@ export async function middleware(req: NextRequest) {
   );
 
   const { data: { user } } = await supabase.auth.getUser();
-  const { pathname } = req.nextUrl;
 
   // /portal/login — public (client login page)
   // /api/portal/* — public (data endpoints, auth enforced in the page itself)
@@ -36,8 +41,6 @@ export async function middleware(req: NextRequest) {
   const isPublic =
     pathname.startsWith("/login") ||
     pathname.startsWith("/auth") ||
-    pathname.startsWith("/portal") ||
-    pathname.startsWith("/api/portal/") ||
     pathname.startsWith("/prospect") ||
     pathname.startsWith("/decks");
 

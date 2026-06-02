@@ -7,6 +7,18 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const slug = searchParams.get('slug');
 
+  // If slug provided, always return single company (used by client portal layout)
+  if (slug) {
+    const { data } = await supabase
+      .from('companies')
+      .select('id,slug,name,logo_url,retainer_aed,package_name,start_date,video_quota')
+      .eq('slug', slug)
+      .eq('is_active', true)
+      .single();
+    if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    return NextResponse.json(data);
+  }
+
   if (isAdminRequest(req)) {
     const { data: companies, error } = await supabase.from('companies').select('*').eq('is_active', true).order('name');
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -24,17 +36,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(stats);
   }
 
-  if (!slug) return NextResponse.json({ error: 'slug required' }, { status: 400 });
-
-  const { data } = await supabase
-    .from('companies')
-    .select('id,slug,name,logo_url,retainer_aed,package_name,start_date,video_quota')
-    .eq('slug', slug)
-    .eq('is_active', true)
-    .single();
-
-  if (!data) return NextResponse.json({ error: 'Not found' }, { status: 404 });
-  return NextResponse.json(data);
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 }
 
 export async function POST(req: NextRequest) {
