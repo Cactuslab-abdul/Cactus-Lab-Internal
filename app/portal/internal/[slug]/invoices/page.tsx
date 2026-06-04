@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams } from "next/navigation";
 import {
   Plus, X, Check, Loader2, Trash2, FileText, CheckCircle2, Clock,
@@ -57,9 +57,14 @@ export default function InvoicesPage() {
   const [view, setView] = useState<"list"|"generator"|"print">("list");
   const [quickYear, setQuickYear] = useState(new Date().getFullYear());
 
-  // Invoice form state
-  const today = new Date();
-  const dueDateDefault = new Date(today); dueDateDefault.setDate(today.getDate() + 7);
+  // Invoice form state — memoized so refs stay stable across renders.
+  // Without this, every render minted a new `today` Date, which cascaded into
+  // a fresh `load` callback, refiring the mount effect, retriggering setForm,
+  // and looping — the "scrolling up and down + refused to save" bug.
+  const today = useMemo(() => new Date(), []);
+  const dueDateDefault = useMemo(() => {
+    const d = new Date(today); d.setDate(today.getDate() + 7); return d;
+  }, [today]);
 
   const [items, setItems] = useState<(LineItem & { id: number })[]>([
     { id: 1, desc: "Social media management — short-form video package (15 videos/month)", qty: 1, rate: 0, notes: "", type: "retainer" }
