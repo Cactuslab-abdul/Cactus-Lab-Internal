@@ -224,7 +224,8 @@ export default function InvoicesPage() {
           </p>
         )}
 
-        <div id="print-invoice" style={{ maxWidth: 760, margin: "0 auto", padding: 60, background: "#fff", color: "#111", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div id="print-invoice" className="p-6 sm:p-[60px]" style={{ maxWidth: 760, margin: "0 auto", background: "#fff", color: "#111", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 48 }}>
             <div>
               <div style={{ fontSize: 22, fontWeight: 700, color: "#1D9E75", letterSpacing: -0.3 }}>CACTUS LAB</div>
@@ -317,6 +318,7 @@ export default function InvoicesPage() {
             )}
           </div>
         </div>
+        </div>
       </>
     );
   }
@@ -362,7 +364,7 @@ export default function InvoicesPage() {
         {/* Manual form */}
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-6 space-y-4">
           <p className="text-[#555] text-xs uppercase tracking-wider font-semibold">Manual Invoice</p>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             {[{ label: "Invoice Number", key: "number", type: "text" }, { label: "Date", key: "date", type: "date" }, { label: "Due Date", key: "due", type: "date" }].map(f => (
               <div key={f.key}>
                 <label className="text-[#555] text-xs block mb-1.5">{f.label}</label>
@@ -392,18 +394,20 @@ export default function InvoicesPage() {
 
           {/* Line items */}
           <div>
-            <div className="grid grid-cols-12 gap-2 text-[10px] text-[#555] uppercase tracking-wider px-1 mb-1">
+            <div className="hidden sm:grid grid-cols-12 gap-2 text-[10px] text-[#555] uppercase tracking-wider px-1 mb-1">
               <span className="col-span-6">Description</span><span className="col-span-2">Qty</span><span className="col-span-3">Rate (AED)</span>
             </div>
             {items.map(item => (
               <div key={item.id} className="grid grid-cols-12 gap-2 items-center mb-2">
-                <input className="col-span-6 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50"
+                <input className="col-span-12 sm:col-span-6 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-green-500/50"
                   value={item.desc} onChange={e => updateItem(item.id, "desc", e.target.value)} placeholder="Description" />
-                <input type="number" className="col-span-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none"
+                <input type="number" inputMode="decimal" placeholder="Qty"
+                  className="col-span-4 sm:col-span-2 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none placeholder-[#555]"
                   value={item.qty} onChange={e => updateItem(item.id, "qty", parseFloat(e.target.value)||0)} />
-                <input type="number" className="col-span-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none"
+                <input type="number" inputMode="decimal" placeholder="Rate"
+                  className="col-span-6 sm:col-span-3 bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2 text-sm text-white text-right focus:outline-none placeholder-[#555]"
                   value={item.rate} onChange={e => updateItem(item.id, "rate", parseFloat(e.target.value)||0)} />
-                <button onClick={() => removeItem(item.id)} className="col-span-1 text-[#444] hover:text-red-400 transition-colors flex justify-center">
+                <button onClick={() => removeItem(item.id)} className="col-span-2 sm:col-span-1 text-[#444] hover:text-red-400 transition-colors flex justify-center py-2">
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
