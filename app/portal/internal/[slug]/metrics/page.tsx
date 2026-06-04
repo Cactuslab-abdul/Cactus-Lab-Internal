@@ -3,21 +3,71 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Plus, X, Check, Loader2, Trash2, TrendingUp, Edit2, RefreshCw, Eye } from "lucide-react";
-import type { Metric } from "@/lib/portal/types";
+import type { Metric, PlatformStats, PlatformData } from "@/lib/portal/types";
 import { useRefreshOnFocus } from "@/lib/portal/useRefresh";
 
 interface Company { id: string; name: string; slug: string; }
 
+type Platform = "instagram" | "facebook" | "tiktok" | "linkedin";
+const PLATFORMS: { key: Platform; label: string; color: string }[] = [
+  { key: "instagram", label: "Instagram", color: "text-pink-400" },
+  { key: "facebook",  label: "Facebook",  color: "text-blue-400" },
+  { key: "tiktok",    label: "TikTok",    color: "text-white" },
+  { key: "linkedin",  label: "LinkedIn",  color: "text-sky-400" },
+];
+
+const EMPTY_PLATFORM: PlatformStats = { followers: 0, followers_change: 0, views: 0, reach: 0, engagement_rate: 0 };
+
+const EMPTY_PLATFORM_DATA: PlatformData = {
+  instagram: { ...EMPTY_PLATFORM },
+  facebook:  { ...EMPTY_PLATFORM },
+  tiktok:    { ...EMPTY_PLATFORM },
+  linkedin:  { ...EMPTY_PLATFORM },
+};
+
 const EMPTY_FORM = {
   month: new Date().toISOString().slice(0, 7),
-  followers: 0, followers_change: 0, views: 0, reach: 0,
-  engagement_rate: 0, top_post_url: "", notes: "",
+  top_post_url: "",
+  notes: "",
+  platform_data: EMPTY_PLATFORM_DATA,
 };
+
+function calcTotals(pd: PlatformData): PlatformStats {
+  const platforms = Object.values(pd).filter(Boolean) as PlatformStats[];
+  if (!platforms.length) return { ...EMPTY_PLATFORM };
+  const filled = platforms.filter(p => p.followers > 0 || p.views > 0 || p.reach > 0);
+  return {
+    followers: platforms.reduce((s, p) => s + (p.followers || 0), 0),
+    followers_change: platforms.reduce((s, p) => s + (p.followers_change || 0), 0),
+    views: platforms.reduce((s, p) => s + (p.views || 0), 0),
+    reach: platforms.reduce((s, p) => s + (p.reach || 0), 0),
+    engagement_rate: filled.length
+      ? parseFloat((filled.reduce((s, p) => s + (p.engagement_rate || 0), 0) / filled.length).toFixed(2))
+      : 0,
+  };
+}
 
 function fmtMonth(ym: string) {
   if (!ym) return "";
   const [y, m] = ym.split("-");
   return new Date(Number(y), Number(m)-1, 1).toLocaleDateString("en-AE", { month: "long", year: "numeric" });
+}
+
+function Field({ label, type = "number", value, onChange, placeholder, readOnly }: {
+  label: string; type?: string; value: string|number; onChange?: (v: string) => void; placeholder?: string; readOnly?: boolean;
+}) {
+  return (
+    <div>
+      <label className="text-[#555] text-xs block mb-1.5">{label}</label>
+      <input type={type} value={value} onChange={e => onChange?.(e.target.value)} placeholder={placeholder}
+        readOnly={readOnly}
+        className={`w-full border rounded-lg px-3 py-2.5 text-white text-sm outline-none ${
+          readOnly
+            ? "bg-[#141414] border-[#1e1e1e] text-[#666] cursor-default"
+            : "bg-[#1a1a1a] border-[#2a2a2a] placeholder-[#444] focus:border-green-500/50"
+        }`} />
+    </div>
+  );
 }
 
 export default function MetricsPage() {
@@ -30,6 +80,7 @@ export default function MetricsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [activePlatform, setActivePlatform] = useState<Platform>("instagram");
   const [editing, setEditing] = useState<string|null>(null);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string|null>(null);
@@ -55,26 +106,35 @@ export default function MetricsPage() {
   useEffect(() => { void load(); }, [load]);
   useRefreshOnFocus(load);
 
+  const setPlatformField = (platform: Platform, field: keyof PlatformStats, raw: string) => {
+    const val = field === "engagement_rate" ? parseFloat(raw) || 0 : parseInt(raw) || 0;
+    setForm(f => ({
+      ...f,
+      platform_data: {
+        ...f.platform_data,
+        [platform]: { ...(f.platform_data[platform] ?? EMPTY_PLATFORM), [field]: val },
+      },
+    }));
+  };
+
   const openNew = () => {
     setForm(EMPTY_FORM);
     setEditing(null);
     setSaveError(null);
+    setActivePlatform("instagram");
     setShowForm(true);
   };
 
   const openEdit = (m: Metric) => {
     setForm({
       month: (m.month || "").slice(0, 7),
-      followers: m.followers,
-      followers_change: m.followers_change,
-      views: m.views,
-      reach: m.reach,
-      engagement_rate: Number(m.engagement_rate),
       top_post_url: m.top_post_url ?? "",
       notes: m.notes ?? "",
+      platform_data: m.platform_data ?? EMPTY_PLATFORM_DATA,
     });
     setEditing(m.id);
     setSaveError(null);
+    setActivePlatform("instagram");
     setShowForm(true);
   };
 
@@ -82,7 +142,16 @@ export default function MetricsPage() {
     if (!company) return;
     setSaving(true);
     setSaveError(null);
-    const payload = { ...form, company_id: company.id };
+
+    const totals = calcTotals(form.platform_data);
+    const payload = {
+      company_id: company.id,
+      month: form.month,
+      top_post_url: form.top_post_url || null,
+      notes: form.notes || null,
+      platform_data: form.platform_data,
+      ...totals,
+    };
 
     const res = editing
       ? await fetch(`/api/portal/v2/metrics/${editing}`, {
@@ -102,7 +171,7 @@ export default function MetricsPage() {
       setEditing(null);
     } else {
       const err = await res.json().catch(() => ({}));
-      setSaveError(err.error || `Server error (${res.status}). If the metrics table doesn't exist yet, run supabase/migrations/001_portal_v2.sql in Supabase.`);
+      setSaveError(err.error || `Server error (${res.status}).`);
     }
     setSaving(false);
   };
@@ -113,6 +182,9 @@ export default function MetricsPage() {
     if (res.ok) setMetrics(prev => prev.filter(m => m.id !== id));
   };
 
+  const totals = calcTotals(form.platform_data);
+  const activePlatformData = form.platform_data[activePlatform] ?? EMPTY_PLATFORM;
+
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-6 h-6 text-[#333] animate-spin" /></div>;
 
   return (
@@ -120,7 +192,7 @@ export default function MetricsPage() {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-white text-2xl font-bold truncate">{company?.name ?? slug} — Metrics</h1>
-          <p className="text-[#555] text-sm mt-1">Input monthly analytics data for the client portal.</p>
+          <p className="text-[#555] text-sm mt-1">Input monthly analytics per platform.</p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
           {company && (
@@ -141,24 +213,74 @@ export default function MetricsPage() {
       </div>
 
       {showForm && (
-        <div className="bg-[#111] border border-green-500/20 rounded-2xl p-6 space-y-4">
+        <div className="bg-[#111] border border-green-500/20 rounded-2xl p-6 space-y-5">
           <div className="flex items-center justify-between">
             <h3 className="text-white font-semibold">{editing ? "Edit Metrics" : "New Month"}</h3>
             <button onClick={() => { setShowForm(false); setEditing(null); setSaveError(null); }} className="text-[#555] hover:text-white transition-colors">
               <X className="w-4 h-4" />
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+
+          {/* Month */}
+          <div className="max-w-[200px]">
             <Field label="Month" type="month" value={form.month} onChange={v => setForm(f => ({ ...f, month: v }))} />
-            <Field label="Followers (end of month)" value={form.followers} onChange={v => setForm(f => ({ ...f, followers: parseInt(v)||0 }))} />
-            <Field label="Follower Change (+/-)" value={form.followers_change} onChange={v => setForm(f => ({ ...f, followers_change: parseInt(v)||0 }))} />
-            <Field label="Total Views" value={form.views} onChange={v => setForm(f => ({ ...f, views: parseInt(v)||0 }))} />
-            <Field label="Reach (unique accounts)" value={form.reach} onChange={v => setForm(f => ({ ...f, reach: parseInt(v)||0 }))} />
-            <Field label="Engagement Rate (%)" value={form.engagement_rate} onChange={v => setForm(f => ({ ...f, engagement_rate: parseFloat(v)||0 }))} />
-            <div className="col-span-2">
-              <Field label="Top Post URL (optional)" type="text" value={form.top_post_url} onChange={v => setForm(f => ({ ...f, top_post_url: v }))} placeholder="https://instagram.com/p/..." />
+          </div>
+
+          {/* Platform tabs */}
+          <div>
+            <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">Platform Data</p>
+            <div className="flex gap-1 mb-4 bg-[#0a0a0a] p-1 rounded-xl w-fit">
+              {PLATFORMS.map(p => (
+                <button key={p.key} onClick={() => setActivePlatform(p.key)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    activePlatform === p.key
+                      ? `bg-[#1e1e1e] ${p.color}`
+                      : "text-[#444] hover:text-[#888]"
+                  }`}>
+                  {p.label}
+                </button>
+              ))}
             </div>
-            <div className="col-span-2">
+
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Followers (end of month)" value={activePlatformData.followers}
+                onChange={v => setPlatformField(activePlatform, "followers", v)} />
+              <Field label="Follower Change (+/-)" value={activePlatformData.followers_change}
+                onChange={v => setPlatformField(activePlatform, "followers_change", v)} />
+              <Field label="Total Views" value={activePlatformData.views}
+                onChange={v => setPlatformField(activePlatform, "views", v)} />
+              <Field label="Reach (unique accounts)" value={activePlatformData.reach}
+                onChange={v => setPlatformField(activePlatform, "reach", v)} />
+              <Field label="Engagement Rate (%)" value={activePlatformData.engagement_rate}
+                onChange={v => setPlatformField(activePlatform, "engagement_rate", v)} />
+            </div>
+          </div>
+
+          {/* Auto-calculated totals */}
+          <div>
+            <p className="text-[#555] text-xs uppercase tracking-wide font-semibold mb-3">
+              Totals (auto-calculated across all platforms)
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: "Total Followers", value: totals.followers.toLocaleString() },
+                { label: "Total Views", value: totals.views.toLocaleString() },
+                { label: "Total Reach", value: totals.reach.toLocaleString() },
+                { label: "Avg Engagement", value: `${totals.engagement_rate}%` },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-[#0a0a0a] border border-[#1a1a1a] rounded-xl px-4 py-3">
+                  <p className="text-[#444] text-xs mb-1">{label}</p>
+                  <p className="text-white font-bold text-sm">{value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Optional fields */}
+          <div className="grid grid-cols-1 gap-4">
+            <Field label="Top Post URL (optional)" type="text" value={form.top_post_url}
+              onChange={v => setForm(f => ({ ...f, top_post_url: v }))} placeholder="https://instagram.com/p/..." />
+            <div>
               <label className="text-[#555] text-xs block mb-1.5">Notes (shown to client)</label>
               <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 rows={2} placeholder="e.g. Strong growth from the product demo reel."
@@ -167,9 +289,7 @@ export default function MetricsPage() {
           </div>
 
           {saveError && (
-            <p className="text-red-400 text-sm bg-red-500/5 border border-red-500/15 rounded-xl px-4 py-3 whitespace-pre-wrap">
-              {saveError}
-            </p>
+            <p className="text-red-400 text-sm bg-red-500/5 border border-red-500/15 rounded-xl px-4 py-3 whitespace-pre-wrap">{saveError}</p>
           )}
           <div className="flex gap-3 pt-1">
             <button onClick={save} disabled={saving}
@@ -177,7 +297,8 @@ export default function MetricsPage() {
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
               {editing ? "Save Changes" : "Add Metrics"}
             </button>
-            <button onClick={() => { setShowForm(false); setEditing(null); setSaveError(null); }} className="px-4 py-2.5 text-[#666] hover:text-white text-sm transition-colors">Cancel</button>
+            <button onClick={() => { setShowForm(false); setEditing(null); setSaveError(null); }}
+              className="px-4 py-2.5 text-[#666] hover:text-white text-sm transition-colors">Cancel</button>
           </div>
         </div>
       )}
@@ -185,7 +306,7 @@ export default function MetricsPage() {
       {metrics.length === 0 ? (
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl p-16 text-center">
           <TrendingUp className="w-8 h-8 text-[#2a2a2a] mx-auto mb-3" />
-          <p className="text-[#555] text-sm">No metrics yet. Add the first month to start showing data to the client.</p>
+          <p className="text-[#555] text-sm">No metrics yet. Add the first month.</p>
         </div>
       ) : (
         <div className="bg-[#111] border border-[#1e1e1e] rounded-2xl overflow-hidden">
@@ -200,7 +321,10 @@ export default function MetricsPage() {
             <tbody>
               {metrics.map((m, i) => (
                 <tr key={m.id} className={i < metrics.length - 1 ? "border-b border-[#141414]" : ""}>
-                  <td className="px-4 py-3 text-white font-medium">{fmtMonth(m.month)}</td>
+                  <td className="px-4 py-3 text-white font-medium">
+                    {fmtMonth(m.month)}
+                    {m.platform_data && <span className="ml-2 text-[10px] bg-green-500/10 border border-green-500/15 text-green-400 px-1.5 py-0.5 rounded">4 platforms</span>}
+                  </td>
                   <td className="px-4 py-3 text-right text-[#aaa]">
                     {m.followers.toLocaleString()}
                     {m.followers_change !== 0 && (
@@ -228,18 +352,6 @@ export default function MetricsPage() {
           </table>
         </div>
       )}
-    </div>
-  );
-}
-
-function Field({ label, type = "number", value, onChange, placeholder }: {
-  label: string; type?: string; value: string|number; onChange: (v: string) => void; placeholder?: string;
-}) {
-  return (
-    <div>
-      <label className="text-[#555] text-xs block mb-1.5">{label}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full bg-[#1a1a1a] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#444] focus:border-green-500/50 outline-none" />
     </div>
   );
 }

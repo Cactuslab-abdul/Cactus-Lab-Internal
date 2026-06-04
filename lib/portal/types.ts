@@ -59,6 +59,21 @@ export interface VideoComment {
   created_at: string;
 }
 
+export interface PlatformStats {
+  followers: number;
+  followers_change: number;
+  views: number;
+  reach: number;
+  engagement_rate: number;
+}
+
+export interface PlatformData {
+  instagram?: PlatformStats;
+  facebook?: PlatformStats;
+  tiktok?: PlatformStats;
+  linkedin?: PlatformStats;
+}
+
 export interface Metric {
   id: string;
   company_id: string;
@@ -70,6 +85,7 @@ export interface Metric {
   engagement_rate: number;
   top_post_url: string | null;
   notes: string | null;
+  platform_data: PlatformData | null;
   created_at: string;
   updated_at: string;
 }

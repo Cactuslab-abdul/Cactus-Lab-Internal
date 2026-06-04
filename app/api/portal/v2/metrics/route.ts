@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
   if (!isAdminRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
 
   const body = await req.json();
-  const { company_id, month, followers, followers_change, views, reach, engagement_rate, top_post_url, notes } = body;
+  const { company_id, month, followers, followers_change, views, reach, engagement_rate, top_post_url, notes, platform_data } = body;
   if (!company_id || !month) return NextResponse.json({ error: 'company_id and month required' }, { status: 400 });
 
   const supabase = createServiceClient();
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
       engagement_rate: engagement_rate || 0,
       top_post_url: top_post_url || null,
       notes: notes || null,
+      platform_data: platform_data || null,
     }, { onConflict: 'company_id,month' })
     .select()
     .single();
