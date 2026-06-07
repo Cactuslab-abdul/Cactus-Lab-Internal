@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isAdminRequest } from '@/lib/portal/auth';
 import { createServiceClient } from '@/lib/supabase/service';
 import { normVideoRow, normMonth } from '@/lib/portal/format';
+import { sendVideoReadyEmail } from '@/lib/portal/email';
 
 export async function GET(req: NextRequest) {
   const supabase = createServiceClient();
@@ -71,5 +72,21 @@ export async function POST(req: NextRequest) {
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  // Notify client when admin creates a video already in ready_for_review state.
+  if (data.status === 'ready_for_review') {
+    const { data: company } = await supabase
+      .from('companies').select('slug, name, email').eq('id', data.company_id).single();
+    if (company?.email) {
+      const origin = req.nextUrl.origin;
+      void sendVideoReadyEmail({
+        to: company.email,
+        companyName: company.name,
+        videoTitle: data.title || 'Untitled video',
+        portalUrl: `${origin}/portal/client/${company.slug}/content`,
+      });
+    }
+  }
+
   return NextResponse.json(normVideoRow(data), { status: 201 });
 }
