@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { FileText, CheckCircle2, Clock, AlertCircle, Loader2 } from "lucide-react";
+import { FileText, CheckCircle2, Clock, AlertCircle, Loader2, Download } from "lucide-react";
+import Link from "next/link";
 import type { Invoice } from "@/lib/portal/types";
 import { useRefreshOnFocus } from "@/lib/portal/useRefresh";
 
@@ -128,6 +129,11 @@ export default function BillingPage() {
                       {inv.status === "paid" ? "Paid" : inv.status === "overdue" ? "Overdue" : "Pending"}
                     </span>
                   </div>
+                  <Link href={`/portal/invoice/${inv.id}`} target="_blank" rel="noopener noreferrer"
+                    title="View / download invoice"
+                    className="flex-shrink-0 p-2 text-[#555] hover:text-white border border-[#2a2a2a] hover:border-[#444] rounded-lg transition-all">
+                    <Download className="w-4 h-4" />
+                  </Link>
                 </div>
               );
             })}
